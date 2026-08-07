@@ -1,4 +1,3 @@
-<!-- views/index.ejs -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -531,6 +530,23 @@
         @keyframes slideInRight { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
         @keyframes slideOutRight { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(50px); } }
 
+        /* 404 Page */
+        .error-page {
+            text-align: center; padding: 4rem 2rem;
+        }
+        .error-page .error-code {
+            font-size: 6rem; font-weight: 900;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .error-page .error-title {
+            font-size: 2rem; font-weight: 700; margin: 1rem 0;
+        }
+        .error-page .error-desc {
+            color: var(--text-muted); font-size: 1.1rem;
+        }
+
         @media (max-width: 992px) {
             .brand-center h1 { font-size: 2.8rem; }
             .analytics-grid { grid-template-columns: 1fr; }
@@ -558,6 +574,7 @@
             .dropdown-menu { right: -10px; min-width: 200px; }
             .profile-avatar { width: 60px; height: 60px; font-size: 1.5rem; }
             .modal-header h2 { font-size: 1.2rem; }
+            .country-grid { grid-template-columns: 1fr; }
         }
         @media (max-width: 480px) {
             .stats-grid { grid-template-columns: 1fr 1fr; gap: 0.8rem; }
@@ -609,19 +626,19 @@
                 <div class="user-menu-wrapper">
                     <button class="user-profile-btn" onclick="toggleDropdown()">
                         <div class="avatar">
-                            <% if (user.profile_photo && user.profile_photo !== '') { %>
-                                <img src="<%= user.profile_photo %>" alt="Profile">
+                            <% if (user.profilePhoto && user.profilePhoto !== '') { %>
+                                <img src="<%= user.profilePhoto %>" alt="Profile">
                             <% } else { %>
-                                <%= (user.display_name || user.first_name || user.username || 'U').charAt(0).toUpperCase() %>
+                                <%= (user.displayName || user.firstName || user.username || 'U').charAt(0).toUpperCase() %>
                             <% } %>
                         </div>
-                        <span class="user-name"><%= user.display_name || user.first_name || user.username || 'User' %></span>
+                        <span class="user-name"><%= user.displayName || user.firstName || user.username || 'User' %></span>
                         <span class="chevron" id="dropdownChevron"><i class="fas fa-chevron-down"></i></span>
                     </button>
                     
                     <div class="dropdown-menu" id="dropdownMenu">
                         <div class="dropdown-header">
-                            <div class="dd-name"><%= user.display_name || user.first_name || user.username || 'User' %></div>
+                            <div class="dd-name"><%= user.displayName || user.firstName || user.username || 'User' %></div>
                             <div class="dd-email"><%= user.email || 'No email set' %></div>
                         </div>
                         <div class="dropdown-divider"></div>
@@ -767,6 +784,15 @@
             <div class="brand-center fade-in">
                 <h1>This Person Is brand Shortlink</h1>
                 <p>✦ Premium URL Shortener with Real-time Analytics ✦</p>
+                <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
+                    <% if (typeof customDomains !== 'undefined' && customDomains) { %>
+                        <% customDomains.forEach(function(domain) { %>
+                            <span style="background: var(--glass); padding: 0.2rem 0.8rem; border-radius: 50px; font-size: 0.7rem; color: var(--text-muted); border: 1px solid var(--glass-border);">
+                                🌐 <%= domain %>
+                            </span>
+                        <% }); %>
+                    <% } %>
+                </div>
             </div>
 
             <div class="glass-card fade-in">
@@ -787,10 +813,10 @@
                         <div class="form-group" style="min-width: 120px; flex: 0.3;">
                             <select class="form-control" name="expiresIn">
                                 <option value="">Never</option>
-                                <option value="1d">1 Day</option>
-                                <option value="7d">7 Days</option>
-                                <option value="30d">30 Days</option>
-                                <option value="90d">90 Days</option>
+                                <option value="1">1 Day</option>
+                                <option value="7">7 Days</option>
+                                <option value="30">30 Days</option>
+                                <option value="90">90 Days</option>
                             </select>
                         </div>
                         <button type="submit" class="btn btn-primary" id="shortenBtn">🚀 Shorten</button>
@@ -1033,10 +1059,10 @@
                         <div class="form-group" style="min-width: 120px; flex: 0.3;">
                             <select class="form-control" name="expiresIn">
                                 <option value="">Never</option>
-                                <option value="1d">1 Day</option>
-                                <option value="7d">7 Days</option>
-                                <option value="30d">30 Days</option>
-                                <option value="90d">90 Days</option>
+                                <option value="1">1 Day</option>
+                                <option value="7">7 Days</option>
+                                <option value="30">30 Days</option>
+                                <option value="90">90 Days</option>
                             </select>
                         </div>
                         <button type="submit" class="btn btn-primary">🚀 Shorten</button>
@@ -1049,13 +1075,13 @@
                     <% links.forEach(function(link) { 
                         var linkUrl = link.shortUrl || '';
                         var linkId = link.id || link._id || '';
-                        var linkCode = link.short_code || '';
-                        var linkOriginal = link.original_url || '';
+                        var linkCode = link.shortCode || '';
+                        var linkOriginal = link.originalUrl || '';
                         var linkClicks = link.clicks || 0;
-                        var linkCreated = link.created_at || '';
+                        var linkCreated = link.createdAt || '';
                         var linkTitle = link.title || '';
-                        var isExpired = link.is_expired || false;
-                        var isActive = link.is_active !== undefined ? link.is_active : true;
+                        var isExpired = link.isExpired || false;
+                        var isActive = link.isActive !== undefined ? link.isActive : true;
                     %>
                         <div class="link-card">
                             <div class="link-top">
@@ -1103,6 +1129,20 @@
                 <% } %>
             </div>
         <% } %>
+
+        <!-- ===== 404 PAGE ===== -->
+        <% if (page === '404') { %>
+            <div class="glass-card error-page">
+                <div class="error-code">404</div>
+                <div class="error-title">Page Not Found</div>
+                <div class="error-desc">The page you're looking for doesn't exist or has been moved.</div>
+                <div style="margin-top: 2rem;">
+                    <a href="/" class="btn btn-primary">🏠 Go Home</a>
+                    <a href="/dashboard" class="btn btn-secondary">📊 Dashboard</a>
+                </div>
+            </div>
+        <% } %>
+
     </div>
 
     <footer class="footer">
@@ -1178,17 +1218,17 @@
             var container = document.getElementById('profileContent');
             if (!container) return;
             
-            var avatarLetter = (data.display_name || data.first_name || data.username || 'U').charAt(0).toUpperCase();
-            var initials = (data.first_name ? data.first_name.charAt(0) : '') + (data.last_name ? data.last_name.charAt(0) : '');
+            var avatarLetter = (data.displayName || data.firstName || data.username || 'U').charAt(0).toUpperCase();
+            var initials = (data.firstName ? data.firstName.charAt(0) : '') + (data.lastName ? data.lastName.charAt(0) : '');
             var completion = data.completion || 0;
             
             container.innerHTML = 
                 '<div class="profile-avatar-section">' +
                     '<div class="profile-avatar">' +
-                        (data.profile_photo ? '<img src="' + data.profile_photo + '" alt="Profile">' : (initials || avatarLetter)) +
+                        (data.profilePhoto ? '<img src="' + data.profilePhoto + '" alt="Profile">' : (initials || avatarLetter)) +
                         '<div class="avatar-badge"><i class="fas fa-check"></i></div>' +
                     '</div>' +
-                    '<div class="profile-display-name">' + (data.display_name || data.first_name || data.username || 'User') + '</div>' +
+                    '<div class="profile-display-name">' + (data.displayName || data.firstName || data.username || 'User') + '</div>' +
                     '<div class="profile-username">@' + (data.username || 'username') + '</div>' +
                 '</div>' +
                 '<div class="completion-section">' +
@@ -1197,10 +1237,10 @@
                 '</div>' +
                 '<div class="profile-field">' +
                     '<label><i class="fas fa-id-card"></i> Full Name</label>' +
-                    '<div class="field-value editable" id="nameDisplay" onclick="editField(\'name\')">' + (data.first_name || '') + ' ' + (data.last_name || '') + '<span class="edit-icon"><i class="fas fa-pen"></i></span></div>' +
+                    '<div class="field-value editable" id="nameDisplay" onclick="editField(\'name\')">' + (data.firstName || '') + ' ' + (data.lastName || '') + '<span class="edit-icon"><i class="fas fa-pen"></i></span></div>' +
                     '<div class="field-value" id="nameEdit" style="display: none;">' +
-                        '<input type="text" id="editFirstName" value="' + (data.first_name || '') + '" placeholder="First Name">' +
-                        '<input type="text" id="editLastName" value="' + (data.last_name || '') + '" placeholder="Last Name" style="margin-top: 0.3rem;">' +
+                        '<input type="text" id="editFirstName" value="' + (data.firstName || '') + '" placeholder="First Name">' +
+                        '<input type="text" id="editLastName" value="' + (data.lastName || '') + '" placeholder="Last Name" style="margin-top: 0.3rem;">' +
                         '<div style="display: flex; gap: 0.5rem; margin-top: 0.3rem;">' +
                             '<button class="btn btn-primary btn-sm" onclick="saveName()">Save</button>' +
                             '<button class="btn btn-secondary btn-sm" onclick="cancelEdit(\'name\')">Cancel</button>' +
@@ -1209,9 +1249,9 @@
                 '</div>' +
                 '<div class="profile-field">' +
                     '<label><i class="fas fa-user"></i> Display Name</label>' +
-                    '<div class="field-value editable" id="displayNameDisplay" onclick="editField(\'displayName\')">' + (data.display_name || data.first_name || data.username || 'User') + '<span class="edit-icon"><i class="fas fa-pen"></i></span></div>' +
+                    '<div class="field-value editable" id="displayNameDisplay" onclick="editField(\'displayName\')">' + (data.displayName || data.firstName || data.username || 'User') + '<span class="edit-icon"><i class="fas fa-pen"></i></span></div>' +
                     '<div class="field-value" id="displayNameEdit" style="display: none;">' +
-                        '<input type="text" id="editDisplayName" value="' + (data.display_name || '') + '" placeholder="Display Name">' +
+                        '<input type="text" id="editDisplayName" value="' + (data.displayName || '') + '" placeholder="Display Name">' +
                         '<div style="display: flex; gap: 0.5rem; margin-top: 0.3rem;">' +
                             '<button class="btn btn-primary btn-sm" onclick="saveDisplayName()">Save</button>' +
                             '<button class="btn btn-secondary btn-sm" onclick="cancelEdit(\'displayName\')">Cancel</button>' +
@@ -1231,19 +1271,19 @@
                 '</div>' +
                 '<div class="profile-field">' +
                     '<label><i class="fab fa-telegram"></i> Telegram ID</label>' +
-                    '<div class="field-value">' + (data.telegram_id || 'N/A') + '</div>' +
+                    '<div class="field-value">' + (data.telegramId || 'N/A') + '</div>' +
                 '</div>' +
                 '<div class="profile-field">' +
                     '<label><i class="fas fa-calendar-plus"></i> Joined</label>' +
-                    '<div class="field-value">' + (data.created_at ? new Date(data.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A') + '</div>' +
+                    '<div class="field-value">' + (data.createdAt ? new Date(data.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A') + '</div>' +
                 '</div>' +
                 '<div class="profile-field">' +
                     '<label><i class="fas fa-clock"></i> Last Login</label>' +
-                    '<div class="field-value">' + (data.last_login ? new Date(data.last_login).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A') + '</div>' +
+                    '<div class="field-value">' + (data.lastLogin ? new Date(data.lastLogin).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A') + '</div>' +
                 '</div>' +
                 '<div class="profile-field">' +
                     '<label><i class="fas fa-circle"></i> Account Status</label>' +
-                    '<div class="field-value" style="text-transform: capitalize;">' + (data.account_status || 'active') + '</div>' +
+                    '<div class="field-value" style="text-transform: capitalize;">' + (data.accountStatus || 'active') + '</div>' +
                 '</div>' +
                 '<div class="profile-field">' +
                     '<label><i class="fas fa-link"></i> Total Links</label>' +
@@ -1319,7 +1359,7 @@
                 var response = await fetch('/api/update-profile', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ first_name: firstName, last_name: lastName })
+                    body: JSON.stringify({ firstName: firstName, lastName: lastName })
                 });
 
                 var data = await response.json();
@@ -1330,9 +1370,9 @@
                     var userNameEl = document.querySelector('.user-profile-btn .user-name');
                     var avatarEl = document.querySelector('.user-profile-btn .avatar');
                     var ddNameEl = document.querySelector('.dropdown-menu .dd-name');
-                    if (userNameEl) userNameEl.textContent = data.user.display_name || data.user.first_name;
-                    if (avatarEl) avatarEl.textContent = data.user.display_name.charAt(0).toUpperCase();
-                    if (ddNameEl) ddNameEl.textContent = data.user.display_name || data.user.first_name;
+                    if (userNameEl) userNameEl.textContent = data.user.displayName || data.user.firstName;
+                    if (avatarEl) avatarEl.textContent = data.user.displayName.charAt(0).toUpperCase();
+                    if (ddNameEl) ddNameEl.textContent = data.user.displayName || data.user.firstName;
                 } else {
                     showToast(data.error || 'Failed to update profile', 'error');
                 }
@@ -1356,7 +1396,7 @@
                 var response = await fetch('/api/update-profile', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ display_name: displayName })
+                    body: JSON.stringify({ displayName: displayName })
                 });
 
                 var data = await response.json();
@@ -1367,9 +1407,9 @@
                     var userNameEl = document.querySelector('.user-profile-btn .user-name');
                     var avatarEl = document.querySelector('.user-profile-btn .avatar');
                     var ddNameEl = document.querySelector('.dropdown-menu .dd-name');
-                    if (userNameEl) userNameEl.textContent = data.user.display_name;
-                    if (avatarEl) avatarEl.textContent = data.user.display_name.charAt(0).toUpperCase();
-                    if (ddNameEl) ddNameEl.textContent = data.user.display_name;
+                    if (userNameEl) userNameEl.textContent = data.user.displayName;
+                    if (avatarEl) avatarEl.textContent = data.user.displayName.charAt(0).toUpperCase();
+                    if (ddNameEl) ddNameEl.textContent = data.user.displayName;
                 } else {
                     showToast(data.error || 'Failed to update profile', 'error');
                 }
@@ -1686,6 +1726,24 @@
                 }
             } catch (e) {}
         }, 10000);
+
+        // ===== KEYBOARD SHORTCUTS =====
+        document.addEventListener('keydown', function(e) {
+            // Escape key closes modal
+            if (e.key === 'Escape') {
+                closeProfileModal();
+            }
+            // Ctrl+K to go to dashboard
+            if (e.ctrlKey && e.key === 'k') {
+                e.preventDefault();
+                window.location.href = '/dashboard';
+            }
+            // Ctrl+Shift+L to logout
+            if (e.ctrlKey && e.shiftKey && e.key === 'L') {
+                e.preventDefault();
+                document.querySelector('form[action="/logout"]')?.submit();
+            }
+        });
     </script>
 
 </body>
