@@ -3,55 +3,47 @@ const session = require('express-session');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
-const rateLimit = require('express-rate-limit');
 const path = require('path');
-const cron = require('node-cron');
 const fs = require('fs');
 const QRCode = require('qrcode');
 
 require('dotenv').config();
 
 const app = express();
-
-// ===== CONFIGURATION =====
 const PORT = process.env.PORT || 3000;
-const SESSION_SECRET = process.env.SESSION_SECRET || 'your-secret-key';
+const SESSION_SECRET = process.env.SESSION_SECRET || 'your-secret-key-change-this';
 
-// 5 Custom Domains
+// Your Custom Domains
 const CUSTOM_DOMAINS = [
-  process.env.DOMAIN_1 || 'thispersonisbrandshortner.xyz',
+  process.env.DOMAIN_1 || 'thispersonisbrandshortner.com',
   process.env.DOMAIN_2 || 'thispersonisbrandshortner1.xyz',
   process.env.DOMAIN_3 || 'thispersonisbrandshortne2.xyz',
   process.env.DOMAIN_4 || 'clcikauto.xyz',
   process.env.DOMAIN_5 || 'clickautoshortner.xyz'
 ];
 
-const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
+const BASE_URL = process.env.BASE_URL || 'https://thispersonisbrandshortner.com';
 
-// ===== JSON FILE STORAGE =====
+// ===== DATA STORAGE =====
 const DATA_FILE = './data.json';
 
-// Initialize data file if it doesn't exist
+// Initialize data file
 if (!fs.existsSync(DATA_FILE)) {
   fs.writeFileSync(DATA_FILE, JSON.stringify({
     users: [],
     links: [],
     clicks: [],
     onlineUsers: [],
-    counters: {
-      linkId: 1,
-      clickId: 1
-    }
+    counters: { linkId: 1, clickId: 1, userId: 1 }
   }, null, 2));
 }
 
 function readData() {
   try {
-    const data = fs.readFileSync(DATA_FILE, 'utf8');
-    return JSON.parse(data);
+    return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
   } catch (error) {
-    console.error('Error reading data file:', error);
-    return { users: [], links: [], clicks: [], onlineUsers: [], counters: { linkId: 1, clickId: 1 } };
+    console.error('Error reading data:', error);
+    return { users: [], links: [], clicks: [], onlineUsers: [], counters: { linkId: 1, clickId: 1, userId: 1 } };
   }
 }
 
@@ -59,29 +51,19 @@ function writeData(data) {
   try {
     fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
   } catch (error) {
-    console.error('Error writing data file:', error);
+    console.error('Error writing data:', error);
   }
 }
 
 // ===== MIDDLEWARE =====
-app.use(helmet({
-  contentSecurityPolicy: false,
-  crossOriginEmbedderPolicy: false
+app.use(helmet({ 
+  contentSecurityPolicy: false, 
+  crossOriginEmbedderPolicy: false 
 }));
 app.use(compression());
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static('public'));
-
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false
-});
-app.use('/api/', limiter);
 
 // Session
 app.use(session({
@@ -201,7 +183,6 @@ function getDeviceInfo(userAgent) {
 }
 
 function getBaseUrl(req) {
-  // Check if request came from one of our custom domains
   const host = req.get('host') || '';
   for (const domain of CUSTOM_DOMAINS) {
     if (host.includes(domain)) {
@@ -226,13 +207,13 @@ function authMiddleware(req, res, next) {
 }
 
 // ===== ROUTES =====
-app.get('/', async (req, res) => {
+app.get('/', (req, res) => {
   try {
-    const user = req.session.user || null;
     const data = readData();
     const onlineUsers = data.onlineUsers || [];
+    const user = req.session.user || null;
     
-    // Clean up stale online users (older than 5 minutes)
+    // Clean up stale online users
     const now = Date.now();
     const activeUsers = onlineUsers.filter(u => (now - u.lastSeen) < 5 * 60 * 1000);
     if (activeUsers.length !== onlineUsers.length) {
@@ -248,28 +229,16 @@ app.get('/', async (req, res) => {
       onlineUsers: activeUsers.length,
       onlineUserList: userNames,
       countries: countries,
-      error: null,
-      success: null,
+      error: req.query.error || null,
+      success: req.query.success || null,
       info: null,
-      shortUrl: null,
+      shortUrl: req.query.shortUrl || null,
       customDomains: CUSTOM_DOMAINS,
       baseUrl: getBaseUrl(req)
     });
   } catch (error) {
     console.error('Home error:', error);
-    res.render('index', {
-      page: 'home',
-      user: null,
-      onlineUsers: 0,
-      onlineUserList: [],
-      countries: countries,
-      error: 'Error loading page',
-      success: null,
-      info: null,
-      shortUrl: null,
-      customDomains: CUSTOM_DOMAINS,
-      baseUrl: getBaseUrl(req)
-    });
+    res.send('Server is running!');
   }
 });
 
@@ -292,7 +261,7 @@ app.get('/login', (req, res) => {
   });
 });
 
-app.post('/login', async (req, res) => {
+app.post('/login', (req, res) => {
   try {
     const { telegramId, username, firstName, lastName, email, timezone } = req.body;
     
@@ -316,7 +285,7 @@ app.post('/login', async (req, res) => {
     let user = data.users.find(u => u.telegramId === telegramId);
     
     if (!user) {
-      const newId = data.counters.userId ? data.counters.userId + 1 : 1;
+      const newId = data.counters.userId + 1;
       user = {
         id: newId,
         telegramId: telegramId,
@@ -335,7 +304,6 @@ app.post('/login', async (req, res) => {
         isAdmin: false
       };
       data.users.push(user);
-      if (!data.counters) data.counters = {};
       data.counters.userId = newId;
       writeData(data);
     } else {
@@ -347,7 +315,6 @@ app.post('/login', async (req, res) => {
       if (timezone) user.timezone = timezone;
       user.lastLogin = new Date().toISOString();
       
-      // Update online status
       const onlineUser = data.onlineUsers.find(u => u.id === user.id);
       if (onlineUser) {
         onlineUser.lastSeen = Date.now();
@@ -396,18 +363,17 @@ app.post('/login', async (req, res) => {
 });
 
 app.post('/logout', (req, res) => {
-  // Remove from online users
   if (req.session.user) {
     const data = readData();
     data.onlineUsers = data.onlineUsers.filter(u => u.id !== req.session.user.id);
     writeData(data);
   }
-  req.session.destroy((err) => {
+  req.session.destroy(() => {
     res.redirect('/');
   });
 });
 
-app.post('/shorten', authMiddleware, async (req, res) => {
+app.post('/shorten', authMiddleware, (req, res) => {
   try {
     const { originalUrl, customSlug, expiresIn } = req.body;
     const baseUrl = getBaseUrl(req);
@@ -416,7 +382,6 @@ app.post('/shorten', authMiddleware, async (req, res) => {
       return res.redirect('/?error=' + encodeURIComponent('Please enter a URL'));
     }
 
-    // Validate URL
     try {
       new URL(originalUrl);
     } catch (e) {
@@ -442,7 +407,7 @@ app.post('/shorten', authMiddleware, async (req, res) => {
       }
     }
 
-    const newId = data.counters.linkId ? data.counters.linkId + 1 : 1;
+    const newId = data.counters.linkId + 1;
     const link = {
       id: newId,
       userId: req.user.id,
@@ -461,7 +426,6 @@ app.post('/shorten', authMiddleware, async (req, res) => {
     data.links.push(link);
     data.counters.linkId = newId;
     
-    // Update user total links
     const user = data.users.find(u => u.id === req.user.id);
     if (user) user.totalLinks = (user.totalLinks || 0) + 1;
     
@@ -476,7 +440,7 @@ app.post('/shorten', authMiddleware, async (req, res) => {
   }
 });
 
-app.get('/dashboard', authMiddleware, async (req, res) => {
+app.get('/dashboard', authMiddleware, (req, res) => {
   try {
     const user = req.user;
     const data = readData();
@@ -498,11 +462,9 @@ app.get('/dashboard', authMiddleware, async (req, res) => {
     const monthAgo = new Date(today);
     monthAgo.setDate(monthAgo.getDate() - 30);
 
-    // Get all clicks for user's links
     const userLinkIds = links.map(l => l.id);
     const clicks = data.clicks.filter(c => userLinkIds.includes(c.linkId));
 
-    // Country stats
     const countryMap = {};
     const deviceMap = {};
     const weekData = [0, 0, 0, 0, 0, 0, 0];
@@ -511,11 +473,9 @@ app.get('/dashboard', authMiddleware, async (req, res) => {
       if (!click.isBot) {
         totalClicks++;
         
-        // Today
         const clickDate = new Date(click.createdAt);
         if (clickDate >= today) todayClicks++;
         
-        // Week
         if (clickDate >= weekAgo) {
           weekClicks++;
           const dayIndex = clickDate.getDay();
@@ -523,15 +483,12 @@ app.get('/dashboard', authMiddleware, async (req, res) => {
           weekData[adjustedIndex]++;
         }
         
-        // Month
         if (clickDate >= monthAgo) monthClicks++;
         
-        // Country
         const countryCode = click.countryCode || 'XX';
         if (!countryMap[countryCode]) countryMap[countryCode] = 0;
         countryMap[countryCode]++;
         
-        // Device
         const deviceKey = click.device + '|' + click.browser + '|' + click.os;
         if (!deviceMap[deviceKey]) deviceMap[deviceKey] = { device: click.device, browser: click.browser, os: click.os, count: 0 };
         deviceMap[deviceKey].count++;
@@ -543,13 +500,11 @@ app.get('/dashboard', authMiddleware, async (req, res) => {
     realClicks = totalClicks;
     const clickRate = (totalClicks + botClicks) > 0 ? Math.round((totalClicks / (totalClicks + botClicks)) * 100) : 0;
 
-    // Format country stats
     const countryStats = Object.entries(countryMap)
       .map(([code, count]) => ({ countryCode: code, count: count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 15);
 
-    // Format device stats
     const deviceStats = Object.values(deviceMap)
       .sort((a, b) => b.count - a.count)
       .slice(0, 20);
@@ -609,11 +564,10 @@ app.get('/dashboard', authMiddleware, async (req, res) => {
   }
 });
 
-app.get('/:code', async (req, res) => {
+app.get('/:code', (req, res) => {
   try {
     const code = req.params.code;
     const data = readData();
-    
     const link = data.links.find(l => 
       (l.shortCode === code || l.customSlug === code) && l.isActive === true
     );
@@ -635,7 +589,6 @@ app.get('/:code', async (req, res) => {
     const isBotUser = isBot(userAgent);
     const deviceInfo = getDeviceInfo(userAgent);
 
-    // Get country from IP (simplified - using geoip-lite)
     let countryCode = 'XX';
     try {
       const geo = require('geoip-lite');
@@ -645,8 +598,7 @@ app.get('/:code', async (req, res) => {
       }
     } catch (e) {}
 
-    // Save click
-    const newId = data.counters.clickId ? data.counters.clickId + 1 : 1;
+    const newId = data.counters.clickId + 1;
     const click = {
       id: newId,
       linkId: link.id,
@@ -675,8 +627,6 @@ app.get('/:code', async (req, res) => {
     }
 
     writeData(data);
-
-    // Redirect to original URL
     res.redirect(link.originalUrl);
   } catch (error) {
     console.error('Redirect error:', error);
@@ -684,7 +634,7 @@ app.get('/:code', async (req, res) => {
   }
 });
 
-app.post('/update-link/:id', authMiddleware, async (req, res) => {
+app.post('/update-link/:id', authMiddleware, (req, res) => {
   try {
     const data = readData();
     const linkId = parseInt(req.params.id);
@@ -716,7 +666,7 @@ app.post('/update-link/:id', authMiddleware, async (req, res) => {
   }
 });
 
-app.post('/toggle-link/:id', authMiddleware, async (req, res) => {
+app.post('/toggle-link/:id', authMiddleware, (req, res) => {
   try {
     const data = readData();
     const linkId = parseInt(req.params.id);
@@ -737,7 +687,7 @@ app.post('/toggle-link/:id', authMiddleware, async (req, res) => {
   }
 });
 
-app.post('/delete-link/:id', authMiddleware, async (req, res) => {
+app.post('/delete-link/:id', authMiddleware, (req, res) => {
   try {
     const data = readData();
     const linkId = parseInt(req.params.id);
@@ -789,7 +739,7 @@ app.get('/qr/:code', async (req, res) => {
   }
 });
 
-app.get('/api/user-data', authMiddleware, async (req, res) => {
+app.get('/api/user-data', authMiddleware, (req, res) => {
   try {
     const data = readData();
     const user = data.users.find(u => u.id === req.user.id);
@@ -832,7 +782,7 @@ app.get('/api/user-data', authMiddleware, async (req, res) => {
   }
 });
 
-app.post('/api/update-profile', authMiddleware, async (req, res) => {
+app.post('/api/update-profile', authMiddleware, (req, res) => {
   try {
     const data = readData();
     const user = data.users.find(u => u.id === req.user.id);
@@ -857,7 +807,6 @@ app.post('/api/update-profile', authMiddleware, async (req, res) => {
       user.displayName = updates.displayName;
     }
 
-    // Update online users list
     const onlineUser = data.onlineUsers.find(u => u.id === user.id);
     if (onlineUser) {
       onlineUser.displayName = user.displayName;
@@ -890,7 +839,7 @@ app.post('/api/update-profile', authMiddleware, async (req, res) => {
   }
 });
 
-app.post('/api/update-timezone', authMiddleware, async (req, res) => {
+app.post('/api/update-timezone', authMiddleware, (req, res) => {
   try {
     const { timezone } = req.body;
     if (!timezone) {
@@ -915,7 +864,7 @@ app.post('/api/update-timezone', authMiddleware, async (req, res) => {
   }
 });
 
-app.get('/api/online-users', async (req, res) => {
+app.get('/api/online-users', (req, res) => {
   try {
     const data = readData();
     const now = Date.now();
@@ -940,7 +889,17 @@ app.get('/api/online-users', async (req, res) => {
   }
 });
 
-// Update online status on each request
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    domains: CUSTOM_DOMAINS,
+    baseUrl: BASE_URL
+  });
+});
+
+// Update online status middleware
 app.use((req, res, next) => {
   if (req.session && req.session.user) {
     const data = readData();
@@ -960,32 +919,13 @@ app.use((req, res, next) => {
   next();
 });
 
-// Cleanup expired links (daily at midnight)
-cron.schedule('0 0 * * *', async () => {
-  try {
-    const data = readData();
-    let count = 0;
-    for (const link of data.links) {
-      if (!link.isExpired && link.expiresAt && new Date(link.expiresAt) < new Date()) {
-        link.isExpired = true;
-        count++;
-      }
-    }
-    if (count > 0) {
-      writeData(data);
-      console.log(`Expired ${count} links`);
-    }
-  } catch (error) {
-    console.error('Cleanup error:', error);
-  }
-});
-
-// Start server
-app.listen(PORT, () => {
+// ===== START SERVER =====
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📡 Base URL: ${BASE_URL}`);
-  console.log(`🌐 Custom Domains:`);
+  console.log('🌐 Custom Domains:');
   CUSTOM_DOMAINS.forEach((domain, i) => {
     console.log(`   ${i + 1}. https://${domain}`);
   });
+  console.log(`✅ Health check: ${BASE_URL}/health`);
 });
