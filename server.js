@@ -317,14 +317,54 @@ async function markOnline(user){
 
 async function authMiddleware(req,res,next){
   try {
-    if(req.session?.user?.id){ const user=await getUserById(req.session.user.id); if(user){ req.user=user; return next(); } }
+    if(req.session?.user?.id){
+      const user=await getUserById(req.session.user.id);
+      if(user){
+        req.user=user;
+        return next();
+      }
+
+      // Session may survive a deploy even when the old user row no longer exists.
+      // Clear that stale user session before redirecting to login.
+      delete req.session.user;
+      if(req.originalUrl!=='/login') req.session.returnTo=req.originalUrl;
+      return req.session.save((err)=>{
+        if(err) console.error('Stale session save error:',err);
+        res.redirect('/login');
+      });
+    }
+
     if(req.originalUrl!=='/login') req.session.returnTo=req.originalUrl;
     return res.redirect('/login');
-  } catch(e){ console.error('Auth error:',e); return res.redirect('/login?error='+encodeURIComponent('Database connection error')); }
+  } catch(e){
+    console.error('Auth error:',e);
+    return res.redirect('/login?error='+encodeURIComponent('Database connection error'));
+  }
 }
 
+// ===== ONLINE HEARTBEAT =====
+// Never write to online_users until the referenced user is confirmed to exist.
+// This prevents foreign-key errors from stale PostgreSQL sessions after migration/redeploy.
 app.use(async (req,res,next)=>{
-  try { if(req.session?.user) await markOnline(req.session.user); } catch(e){ console.error('Online heartbeat error:',e.message); }
+  if(!req.session?.user?.id) return next();
+
+  try {
+    const user=await getUserById(req.session.user.id);
+
+    if(!user){
+      console.warn(`⚠️ Stale session cleared for missing user id ${req.session.user.id}`);
+      delete req.session.user;
+      return req.session.save((err)=>{
+        if(err) console.error('Stale session cleanup error:',err);
+        next();
+      });
+    }
+
+    await markOnline(user);
+  } catch(e){
+    console.error('Online heartbeat error:',e.message);
+  }
+
   next();
 });
 
