@@ -530,7 +530,6 @@
         @keyframes slideInRight { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
         @keyframes slideOutRight { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(50px); } }
 
-        /* 404 Page */
         .error-page {
             text-align: center; padding: 4rem 2rem;
         }
@@ -659,7 +658,7 @@
 
     <div class="container">
 
-        <% 
+        <%
             var queryError = typeof error !== 'undefined' ? error : null;
             var querySuccess = typeof success !== 'undefined' ? success : null;
             var queryInfo = typeof info !== 'undefined' ? info : null;
@@ -1729,19 +1728,17 @@
 
         // ===== KEYBOARD SHORTCUTS =====
         document.addEventListener('keydown', function(e) {
-            // Escape key closes modal
             if (e.key === 'Escape') {
                 closeProfileModal();
             }
-            // Ctrl+K to go to dashboard
             if (e.ctrlKey && e.key === 'k') {
                 e.preventDefault();
                 window.location.href = '/dashboard';
             }
-            // Ctrl+Shift+L to logout
             if (e.ctrlKey && e.shiftKey && e.key === 'L') {
                 e.preventDefault();
-                document.querySelector('form[action="/logout"]')?.submit();
+                var logoutForm = document.querySelector('form[action="/logout"]');
+                if (logoutForm) logoutForm.submit();
             }
         });
     </script>
