@@ -1098,9 +1098,13 @@
                                 <span>👁️ <%= linkClicks %> clicks</span>
                                 <span>📅 <span class="link-date" data-date="<%= linkCreated %>"><%= linkCreated %></span></span>
                                 <span>🆔 <%= linkCode %></span>
-                                <% if (isExpired) { %><span class="badge badge-expired">⏰ Expired</span><% } %>
-                                <% else if (!isActive) { %><span class="badge badge-inactive">⛔ Inactive</span><% } %>
-                                <% else { %><span class="badge badge-active">✅ Active</span><% } %>
+                                <% if (isExpired) { %>
+                                    <span class="badge badge-expired">⏰ Expired</span>
+                                <% } else if (!isActive) { %>
+                                    <span class="badge badge-inactive">⛔ Inactive</span>
+                                <% } else { %>
+                                    <span class="badge badge-active">✅ Active</span>
+                                <% } %>
                             </div>
                             <div class="link-actions">
                                 <form action="/update-link/<%= linkId %>" method="POST" class="edit-form">
