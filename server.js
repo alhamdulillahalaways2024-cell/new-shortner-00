@@ -14,6 +14,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const SESSION_SECRET = process.env.SESSION_SECRET || 'your-secret-key-change-this';
 
+// Railway/Reverse proxy support (required for secure cookies, req.ip and express-rate-limit)
+app.set('trust proxy', 1);
+
 // Your Custom Domains
 const CUSTOM_DOMAINS = [
   process.env.DOMAIN_1 || 'thispersonisbrandshortner.com',
@@ -219,6 +222,29 @@ function authMiddleware(req, res, next) {
   res.redirect('/login');
 }
 
+// ===== ONLINE STATUS HEARTBEAT =====
+// Must be registered BEFORE routes so dashboard/API requests refresh lastSeen.
+app.use((req, res, next) => {
+  if (req.session && req.session.user) {
+    const data = readData();
+    const onlineUser = data.onlineUsers.find(u => u.id === req.session.user.id);
+    if (onlineUser) {
+      onlineUser.lastSeen = Date.now();
+      onlineUser.username = req.session.user.username;
+      onlineUser.displayName = req.session.user.displayName;
+    } else {
+      data.onlineUsers.push({
+        id: req.session.user.id,
+        username: req.session.user.username,
+        displayName: req.session.user.displayName,
+        lastSeen: Date.now()
+      });
+    }
+    writeData(data);
+  }
+  next();
+});
+
 // ===== ROUTES =====
 
 // ===== HOME PAGE =====
@@ -368,6 +394,19 @@ app.post('/login', (req, res) => {
       writeData(data);
     }
 
+    // Mark this user online immediately after every successful login
+    const freshOnlineData = readData();
+    const onlineIndex = freshOnlineData.onlineUsers.findIndex(u => u.id === user.id);
+    const onlineRecord = {
+      id: user.id,
+      username: user.username,
+      displayName: user.displayName,
+      lastSeen: Date.now()
+    };
+    if (onlineIndex >= 0) freshOnlineData.onlineUsers[onlineIndex] = onlineRecord;
+    else freshOnlineData.onlineUsers.push(onlineRecord);
+    writeData(freshOnlineData);
+
     req.session.user = {
       id: user.id,
       telegramId: user.telegramId,
@@ -382,7 +421,13 @@ app.post('/login', (req, res) => {
 
     const returnTo = req.session.returnTo || '/dashboard';
     delete req.session.returnTo;
-    res.redirect(returnTo);
+    return req.session.save((sessionError) => {
+      if (sessionError) {
+        console.error('Session save error:', sessionError);
+        return res.redirect('/login?error=' + encodeURIComponent('Could not save login session. Please try again.'));
+      }
+      res.redirect(returnTo);
+    });
   } catch (error) {
     console.error('Login error:', error);
     res.render('index', {
@@ -483,7 +528,13 @@ app.get('/dashboard', authMiddleware, (req, res) => {
       .sort((a, b) => b.count - a.count)
       .slice(0, 20);
 
-    const onlineUsers = data.onlineUsers || [];
+    const nowOnline = Date.now();
+    const onlineUsers = (data.onlineUsers || []).filter(u => (nowOnline - u.lastSeen) < 5 * 60 * 1000);
+    const onlineUserList = onlineUsers.map(u => ({ name: u.displayName || u.username || 'User' }));
+    if (onlineUsers.length !== (data.onlineUsers || []).length) {
+      data.onlineUsers = onlineUsers;
+      writeData(data);
+    }
 
     res.render('index', {
       page: 'dashboard',
@@ -501,7 +552,7 @@ app.get('/dashboard', authMiddleware, (req, res) => {
       deviceStats: deviceStats,
       weekData: weekData,
       countries: countries,
-      onlineUserList: [],
+      onlineUserList: onlineUserList,
       error: req.query.error || null,
       success: req.query.success || null,
       info: null,
@@ -955,26 +1006,6 @@ app.get('/health', (req, res) => {
     baseUrl: BASE_URL,
     uptime: process.uptime()
   });
-});
-
-// ===== UPDATE ONLINE STATUS MIDDLEWARE =====
-app.use((req, res, next) => {
-  if (req.session && req.session.user) {
-    const data = readData();
-    const onlineUser = data.onlineUsers.find(u => u.id === req.session.user.id);
-    if (onlineUser) {
-      onlineUser.lastSeen = Date.now();
-    } else {
-      data.onlineUsers.push({
-        id: req.session.user.id,
-        username: req.session.user.username,
-        displayName: req.session.user.displayName,
-        lastSeen: Date.now()
-      });
-    }
-    writeData(data);
-  }
-  next();
 });
 
 // ===== 404 ERROR HANDLER =====
