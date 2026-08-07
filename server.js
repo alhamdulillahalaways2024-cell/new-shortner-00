@@ -1,5 +1,7 @@
 const express = require('express');
 const session = require('express-session');
+const pgSession = require('connect-pg-simple')(session);
+const { Pool } = require('pg');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
@@ -86,13 +88,54 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// Session
+// ===== SESSION STORE =====
+// Railway production: persist login sessions in PostgreSQL when DATABASE_URL is set.
+// If DATABASE_URL is missing, fall back to MemoryStore so the site can still boot.
+let sessionStore;
+let sessionPool = null;
+
+if (process.env.DATABASE_URL && process.env.DATABASE_URL.trim()) {
+  try {
+    const dbUrl = process.env.DATABASE_URL.trim();
+    const isRailwayInternal = /\.railway\.internal(?::\d+)?\//i.test(dbUrl);
+
+    sessionPool = new Pool({
+      connectionString: dbUrl,
+      ssl: isRailwayInternal ? false : { rejectUnauthorized: false },
+      max: 10,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000
+    });
+
+    sessionPool.on('error', (err) => {
+      console.error('PostgreSQL session pool error:', err.message);
+    });
+
+    sessionStore = new pgSession({
+      pool: sessionPool,
+      tableName: 'user_sessions',
+      createTableIfMissing: true,
+      pruneSessionInterval: 60 * 15,
+      errorLog: (err) => console.error('PostgreSQL session store error:', err)
+    });
+
+    console.log('✅ Session store: PostgreSQL');
+  } catch (error) {
+    console.error('⚠️ Failed to configure PostgreSQL session store:', error.message);
+    console.warn('⚠️ Falling back to MemoryStore. Check DATABASE_URL.');
+  }
+} else {
+  console.warn('⚠️ DATABASE_URL is not set. Using temporary MemoryStore for sessions.');
+}
+
 app.use(session({
+  store: sessionStore,
   proxy: true,
   name: 'tpib.sid',
   secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
+  rolling: true,
   cookie: {
     maxAge: 1000 * 60 * 60 * 24 * 30,
     secure: process.env.NODE_ENV === 'production',
