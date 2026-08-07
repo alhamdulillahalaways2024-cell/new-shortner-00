@@ -17,16 +17,17 @@ const SESSION_SECRET = process.env.SESSION_SECRET || 'your-secret-key-change-thi
 // Railway/Reverse proxy support (required for secure cookies, req.ip and express-rate-limit)
 app.set('trust proxy', 1);
 
-// Your Custom Domains
+// ===== DOMAIN CONFIG =====
+const BASE_URL = (process.env.BASE_URL || 'https://thispersonisbrandshortner.com').replace(/\/$/, '');
+const BASE_HOST = new URL(BASE_URL).hostname.toLowerCase();
 const CUSTOM_DOMAINS = [
-  process.env.DOMAIN_1 || 'thispersonisbrandshortner.com',
-  process.env.DOMAIN_2 || 'thispersonisbrandshortner1.xyz',
-  process.env.DOMAIN_3 || 'thispersonisbrandshortne2.xyz',
-  process.env.DOMAIN_4 || 'clcikauto.xyz',
-  process.env.DOMAIN_5 || 'clickautoshortner.xyz'
-];
-
-const BASE_URL = process.env.BASE_URL || 'https://thispersonisbrandshortner.com';
+  process.env.DOMAIN_1, process.env.DOMAIN_2, process.env.DOMAIN_3,
+  process.env.DOMAIN_4, process.env.DOMAIN_5, process.env.DOMAIN_6
+].filter(Boolean)
+ .map(d => String(d).trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '').toLowerCase())
+ .filter((d, i, arr) => d && d !== BASE_HOST && arr.indexOf(d) === i);
+const AVAILABLE_DOMAINS = [BASE_HOST, ...CUSTOM_DOMAINS];
+const PREVIEW_DESCRIPTION = process.env.PREVIEW_DESCRIPTION || 'Fast, clean and secure short links powered by THIS PERSON IS BRAND.';
 
 // ===== VIEW ENGINE SETUP =====
 app.set('view engine', 'ejs');
@@ -198,14 +199,58 @@ function getDeviceInfo(userAgent) {
   return { device, browser, os };
 }
 
+function normalizeHost(host) {
+  return String(host || '').split(':')[0].toLowerCase().replace(/^www\./, '');
+}
+
+function domainOrigin(domain) {
+  const clean = normalizeHost(domain);
+  return clean === normalizeHost(BASE_HOST) ? BASE_URL : `https://${clean}`;
+}
+
 function getBaseUrl(req) {
-  const host = req.get('host') || '';
-  for (const domain of CUSTOM_DOMAINS) {
-    if (host.includes(domain)) {
-      return `https://${domain}`;
-    }
-  }
+  const host = normalizeHost(req.get('host'));
+  if (AVAILABLE_DOMAINS.map(normalizeHost).includes(host)) return domainOrigin(host);
   return BASE_URL;
+}
+
+function buildShortUrl(link) {
+  const domain = normalizeHost(link.selectedDomain || BASE_HOST);
+  return `${domainOrigin(domain)}/${link.shortCode}`;
+}
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
+function isSocialPreviewBot(userAgent) {
+  return /facebookexternalhit|facebot|twitterbot|linkedinbot|whatsapp|telegrambot|discordbot|slackbot|pinterest|skypeuripreview/i.test(userAgent || '');
+}
+
+function renderSocialPreview(req, res, link) {
+  const shortUrl = buildShortUrl(link);
+  const host = normalizeHost(link.selectedDomain || req.get('host') || BASE_HOST);
+  const title = host;
+  const description = PREVIEW_DESCRIPTION;
+  res.set('Cache-Control', 'public, max-age=300');
+  return res.status(200).type('html').send(`<!doctype html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${escapeHtml(title)}</title>
+<meta name="description" content="${escapeHtml(description)}">
+<link rel="canonical" href="${escapeHtml(shortUrl)}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="${escapeHtml(title)}">
+<meta property="og:title" content="${escapeHtml(title)}">
+<meta property="og:description" content="${escapeHtml(description)}">
+<meta property="og:url" content="${escapeHtml(shortUrl)}">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="${escapeHtml(title)}">
+<meta name="twitter:description" content="${escapeHtml(description)}">
+</head><body></body></html>`);
 }
 
 // ===== AUTH MIDDLEWARE =====
@@ -250,46 +295,29 @@ app.use((req, res, next) => {
 // ===== HOME PAGE =====
 app.get('/', (req, res) => {
   try {
-    // Check if user is logged in
-    if (req.session && req.session.user) {
-      const data = readData();
-      const user = data.users.find(u => u.id === req.session.user.id);
-      if (user) {
-        // User is logged in - redirect to dashboard
-        return res.redirect('/dashboard');
-      }
-    }
-    
-    // User is not logged in - show home page with login option
     const data = readData();
-    const onlineUsers = data.onlineUsers || [];
-    
-    // Clean up stale online users
     const now = Date.now();
-    const activeUsers = onlineUsers.filter(u => (now - u.lastSeen) < 5 * 60 * 1000);
-    if (activeUsers.length !== onlineUsers.length) {
+    const activeUsers = (data.onlineUsers || []).filter(u => (now - u.lastSeen) < 5 * 60 * 1000);
+    if (activeUsers.length !== (data.onlineUsers || []).length) {
       data.onlineUsers = activeUsers;
       writeData(data);
     }
-
-    const userNames = activeUsers.map(u => ({ name: u.displayName || u.username || 'User' }));
-
+    const loggedUser = req.session?.user ? data.users.find(u => u.id === req.session.user.id) || null : null;
+    const onlineUserList = activeUsers.map(u => ({ name: u.displayName || u.username || 'User' }));
+    const registeredUserList = data.users.slice(-30).reverse().map(u => ({
+      name: u.displayName || [u.firstName, u.lastName].filter(Boolean).join(' ') || u.username || 'User',
+      username: u.username || ''
+    }));
     res.render('index', {
-      page: 'home',
-      user: null,
-      onlineUsers: activeUsers.length,
-      onlineUserList: userNames,
-      countries: countries,
-      error: req.query.error || null,
-      success: req.query.success || null,
-      info: null,
-      shortUrl: req.query.shortUrl || null,
-      customDomains: CUSTOM_DOMAINS,
-      baseUrl: getBaseUrl(req)
+      page: 'home', user: loggedUser,
+      onlineUsers: activeUsers.length, onlineUserList,
+      totalUsers: data.users.length, registeredUserList,
+      countries, error: req.query.error || null, success: req.query.success || null, info: null,
+      shortUrl: null, customDomains: CUSTOM_DOMAINS, availableDomains: AVAILABLE_DOMAINS,
+      baseDomain: BASE_HOST, baseUrl: BASE_URL
     });
   } catch (error) {
     console.error('Home error:', error);
-    // Fallback: show login page
     res.redirect('/login');
   }
 });
@@ -315,8 +343,11 @@ app.get('/login', (req, res) => {
       error: req.query.error || null,
       success: req.query.success || null,
       info: null,
-      shortUrl: null,
+      shortUrl: req.query.shortUrl || null,
+      totalUsers: data.users.length,
       customDomains: CUSTOM_DOMAINS,
+      availableDomains: AVAILABLE_DOMAINS,
+      baseDomain: BASE_HOST,
       baseUrl: getBaseUrl(req)
     });
   } catch (error) {
@@ -342,6 +373,8 @@ app.post('/login', (req, res) => {
         info: null,
         shortUrl: null,
         customDomains: CUSTOM_DOMAINS,
+        availableDomains: AVAILABLE_DOMAINS,
+        baseDomain: BASE_HOST,
         baseUrl: getBaseUrl(req)
       });
     }
@@ -441,6 +474,8 @@ app.post('/login', (req, res) => {
       info: null,
       shortUrl: null,
       customDomains: CUSTOM_DOMAINS,
+      availableDomains: AVAILABLE_DOMAINS,
+      baseDomain: BASE_HOST,
       baseUrl: getBaseUrl(req)
     });
   }
@@ -463,9 +498,9 @@ app.get('/dashboard', authMiddleware, (req, res) => {
   try {
     const user = req.user;
     const data = readData();
-    const links = data.links.filter(l => l.userId === user.id).sort((a, b) => 
+    const links = data.links.filter(l => l.userId === user.id).sort((a, b) =>
       new Date(b.createdAt) - new Date(a.createdAt)
-    );
+    ).map(l => ({ ...l, shortUrl: buildShortUrl(l) }));
     
     let totalClicks = 0;
     let todayClicks = 0;
@@ -558,6 +593,8 @@ app.get('/dashboard', authMiddleware, (req, res) => {
       info: null,
       shortUrl: null,
       customDomains: CUSTOM_DOMAINS,
+      availableDomains: AVAILABLE_DOMAINS,
+      baseDomain: BASE_HOST,
       baseUrl: getBaseUrl(req)
     });
   } catch (error) {
@@ -584,25 +621,52 @@ app.get('/dashboard', authMiddleware, (req, res) => {
       info: null,
       shortUrl: null,
       customDomains: CUSTOM_DOMAINS,
+      availableDomains: AVAILABLE_DOMAINS,
+      baseDomain: BASE_HOST,
       baseUrl: getBaseUrl(req)
     });
+  }
+});
+
+// ===== SHORT LINK PAGE =====
+app.get('/shorten-page', authMiddleware, (req, res) => {
+  try {
+    const data = readData();
+    const userLinks = data.links.filter(l => l.userId === req.user.id)
+      .sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 12).map(l => ({ ...l, shortUrl: buildShortUrl(l) }));
+    const now = Date.now();
+    const activeUsers = (data.onlineUsers || []).filter(u => (now - u.lastSeen) < 5 * 60 * 1000);
+    res.render('index', {
+      page: 'shorten', user: req.user, links: userLinks,
+      onlineUsers: activeUsers.length, onlineUserList: activeUsers.map(u => ({name: u.displayName || u.username || 'User'})),
+      countries, error: req.query.error || null, success: req.query.success || null, info: null,
+      shortUrl: req.query.shortUrl || null, customDomains: CUSTOM_DOMAINS, availableDomains: AVAILABLE_DOMAINS,
+      baseDomain: BASE_HOST, baseUrl: BASE_URL
+    });
+  } catch (error) {
+    console.error('Shorten page error:', error);
+    res.redirect('/dashboard?error=' + encodeURIComponent('Could not open short link page'));
   }
 });
 
 // ===== SHORTEN URL =====
 app.post('/shorten', authMiddleware, (req, res) => {
   try {
-    const { originalUrl, customSlug, expiresIn } = req.body;
-    const baseUrl = getBaseUrl(req);
+    const { originalUrl, customSlug, expiresIn, domain } = req.body;
+    const requestedDomain = normalizeHost(domain || BASE_HOST);
+    const allowedDomains = AVAILABLE_DOMAINS.map(normalizeHost);
+    const selectedDomain = allowedDomains.includes(requestedDomain) ? requestedDomain : normalizeHost(BASE_HOST);
+    const baseUrl = domainOrigin(selectedDomain);
     
     if (!originalUrl) {
-      return res.redirect('/dashboard?error=' + encodeURIComponent('Please enter a URL'));
+      return res.redirect('/shorten-page?error=' + encodeURIComponent('Please enter a URL'));
     }
 
     try {
       new URL(originalUrl);
     } catch (e) {
-      return res.redirect('/dashboard?error=' + encodeURIComponent('Invalid URL format'));
+      return res.redirect('/shorten-page?error=' + encodeURIComponent('Invalid URL format'));
     }
 
     const data = readData();
@@ -611,7 +675,7 @@ app.post('/shorten', authMiddleware, (req, res) => {
     if (customSlug) {
       const existing = data.links.find(l => l.shortCode === customSlug);
       if (existing) {
-        return res.redirect('/dashboard?error=' + encodeURIComponent('Custom slug already taken'));
+        return res.redirect('/shorten-page?error=' + encodeURIComponent('Custom slug already taken'));
       }
       shortCode = customSlug;
     }
@@ -637,7 +701,8 @@ app.post('/shorten', authMiddleware, (req, res) => {
       isExpired: false,
       expiresAt: expiresAt,
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      selectedDomain: selectedDomain
     };
 
     data.links.push(link);
@@ -650,10 +715,10 @@ app.post('/shorten', authMiddleware, (req, res) => {
 
     const shortUrl = baseUrl + '/' + shortCode;
 
-    res.redirect('/dashboard?success=' + encodeURIComponent('Link created successfully!') + '&shortUrl=' + encodeURIComponent(shortUrl));
+    res.redirect('/shorten-page?success=' + encodeURIComponent('Link created successfully!') + '&shortUrl=' + encodeURIComponent(shortUrl));
   } catch (error) {
     console.error('Shorten error:', error);
-    res.redirect('/dashboard?error=' + encodeURIComponent('Failed to create short link: ' + error.message));
+    res.redirect('/shorten-page?error=' + encodeURIComponent('Failed to create short link: ' + error.message));
   }
 });
 
@@ -668,9 +733,11 @@ app.get('/:code', (req, res) => {
     }
     
     const data = readData();
-    const link = data.links.find(l => 
-      (l.shortCode === code || l.customSlug === code) && l.isActive === true
-    );
+    const requestHost = normalizeHost(req.get('host'));
+    const link = data.links.find(l => {
+      const linkHost = normalizeHost(l.selectedDomain || BASE_HOST);
+      return (l.shortCode === code || l.customSlug === code) && l.isActive === true && linkHost === requestHost;
+    });
 
     if (!link) {
       return res.status(404).send('Link not found or inactive');
@@ -727,7 +794,9 @@ app.get('/:code', (req, res) => {
     }
 
     writeData(data);
-    res.redirect(link.originalUrl);
+    if (isSocialPreviewBot(userAgent)) return renderSocialPreview(req, res, link);
+    res.set('Cache-Control', 'no-store');
+    return res.redirect(302, link.originalUrl);
   } catch (error) {
     console.error('Redirect error:', error);
     res.status(500).send('Error redirecting');
@@ -1002,7 +1071,7 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     timestamp: new Date().toISOString(),
-    domains: CUSTOM_DOMAINS,
+    domains: AVAILABLE_DOMAINS,
     baseUrl: BASE_URL,
     uptime: process.uptime()
   });
