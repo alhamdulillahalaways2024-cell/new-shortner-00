@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>This Person Is brand Shortlink</title>
+    <meta name="description" content="Fast, clean and secure short links powered by THIS PERSON IS BRAND.">
     
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%20%20%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2215%22%20fill%3D%22%23111827%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M24%2018h-5a11%2011%200%200%200%200%2022h10a11%2011%200%200%200%208.6-4.1%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M40%2046h5a11%2011%200%200%200%200-22H35a11%2011%200%200%200-8.6%204.1%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M24%2032h16%22%20stroke%3D%22%23fff%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%2F%3E%0A%3C%2Fsvg%3E">
@@ -617,7 +618,10 @@
 
         <div class="nav-links">
             <a href="/">Home</a>
-            <a href="/dashboard">Dashboard</a>
+            <% if (typeof user !== 'undefined' && user) { %>
+                <a href="/dashboard">Dashboard</a>
+                <a href="/shorten-page">Short Link</a>
+            <% } %>
 
             <span class="live-counter">
                 <span class="dot"></span>
@@ -646,6 +650,7 @@
                         <div class="dropdown-divider"></div>
                         <button class="dropdown-item" onclick="openProfileModal()"><i class="fas fa-user"></i> User Details</button>
                         <button class="dropdown-item" onclick="window.location.href='/dashboard'"><i class="fas fa-tachometer-alt"></i> Dashboard</button>
+                        <button class="dropdown-item" onclick="window.location.href='/shorten-page'"><i class="fas fa-link"></i> Short Link</button>
                         <button class="dropdown-item" onclick="window.location.href='/'"><i class="fas fa-home"></i> Home</button>
                         <div class="dropdown-divider"></div>
                         <form action="/logout" method="POST" style="display: inline;">
@@ -784,82 +789,58 @@
         <!-- ===== HOME PAGE ===== -->
         <% if (page === 'home') { %>
             <div class="brand-center fade-in">
+                <div style="font-size:4rem;margin-bottom:.4rem;">🔗</div>
                 <h1>This Person Is brand Shortlink</h1>
-                <p>✦ Premium URL Shortener with Real-time Analytics ✦</p>
-                <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
-                    <% if (typeof customDomains !== 'undefined' && customDomains) { %>
-                        <% customDomains.forEach(function(domain) { %>
-                            <span style="background: var(--glass); padding: 0.2rem 0.8rem; border-radius: 50px; font-size: 0.7rem; color: var(--text-muted); border: 1px solid var(--glass-border);">
-                                🌐 <%= domain %>
-                            </span>
-                        <% }); %>
-                    <% } %>
-                </div>
-            </div>
-
-            <div class="glass-card fade-in">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
-                    <h2 style="font-size: 1.8rem; font-weight: 800;">Shorten Your Links</h2>
-                    <span class="unlimited-badge">♾️ Unlimited</span>
-                </div>
-                <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Create unlimited short, memorable links that update automatically</p>
-
-                <% if (typeof user !== 'undefined' && user) { %>
-                    <form action="/shorten" method="POST" id="shortenForm" class="shorten-form">
-                        <div class="form-group">
-                            <input type="url" class="form-control" id="originalUrl" name="originalUrl" placeholder="Paste your long URL here..." required>
-                        </div>
-                        <div class="form-group" style="min-width: 150px; flex: 0.5;">
-                            <input type="text" class="form-control" name="customSlug" placeholder="Custom slug (optional)">
-                        </div>
-                        <div class="form-group" style="min-width: 120px; flex: 0.3;">
-                            <select class="form-control" name="expiresIn">
-                                <option value="">Never</option>
-                                <option value="1">1 Day</option>
-                                <option value="7">7 Days</option>
-                                <option value="30">30 Days</option>
-                                <option value="90">90 Days</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="btn btn-primary" id="shortenBtn">🚀 Shorten</button>
-                    </form>
-
-                    <% if (typeof shortUrl !== 'undefined' && shortUrl) { %>
-                        <div class="short-link-display">
-                            <span class="link">🔗 <%= shortUrl %></span>
-                            <button class="copy-btn" onclick="copyToClipboard('<%= shortUrl %>')">📋 Copy Link</button>
-                        </div>
-                    <% } %>
-                <% } else { %>
-                    <div style="text-align: center; padding: 2.5rem; background: var(--glass); border-radius: 16px; border: 1px solid var(--glass-border);">
-                        <p style="font-size: 1.2rem; margin-bottom: 1rem;">🔐 Please login to create short links</p>
-                        <a href="/login" class="btn btn-telegram">Login with Telegram</a>
-                    </div>
-                <% } %>
-            </div>
-
-            <div class="features-grid">
-                <div class="feature-card"><div class="icon">♾️</div><h3>Unlimited Links</h3><p>Create as many as you want!</p></div>
-                <div class="feature-card"><div class="icon">🔄</div><h3>Updateable</h3><p>Change URL anytime</p></div>
-                <div class="feature-card"><div class="icon">📊</div><h3>Analytics</h3><p>Track every click</p></div>
-                <div class="feature-card"><div class="icon">🔒</div><h3>Password Protect</h3><p>Secure your links</p></div>
-                <div class="feature-card"><div class="icon">📱</div><h3>QR Code</h3><p>Download QR for any link</p></div>
-                <div class="feature-card"><div class="icon">🌐</div><h3>Custom Domains</h3><p>Branded short links</p></div>
-            </div>
-
-            <div class="glass-card fade-in" style="margin-top: 2rem;">
-                <h3 style="font-weight: 700;">👥 Live Users</h3>
-                <p style="color: var(--text-muted); margin-bottom: 0.5rem;">
-                    Currently <strong style="color: var(--accent);"><%= typeof onlineUsers !== 'undefined' ? onlineUsers : 0 %></strong> users are online
-                </p>
-                <div class="user-list" id="userList">
-                    <% if (typeof onlineUserList !== 'undefined' && onlineUserList && onlineUserList.length > 0) { %>
-                        <% onlineUserList.forEach(function(u) { %>
-                            <span class="user-badge"><span class="online-dot"></span> <%= u.name %></span>
-                        <% }); %>
+                <p>Fast branded short links • Real-time analytics • Bot detection • Multi-domain ready</p>
+                <div style="margin-top:1rem;display:flex;justify-content:center;gap:.7rem;flex-wrap:wrap;">
+                    <% if (typeof user !== 'undefined' && user) { %>
+                        <a href="/shorten-page" class="btn btn-primary">🚀 Create Short Link</a>
+                        <a href="/dashboard" class="btn btn-secondary">📊 Open Dashboard</a>
                     <% } else { %>
-                        <span style="color: var(--text-muted);">No users online</span>
+                        <a href="/login" class="btn btn-telegram">🔑 Login to Start</a>
                     <% } %>
+                </div>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card"><div class="number"><%= typeof totalUsers !== 'undefined' ? totalUsers : 0 %></div><div class="label">Registered Users</div></div>
+                <div class="stat-card"><div class="number"><%= typeof onlineUsers !== 'undefined' ? onlineUsers : 0 %></div><div class="label">Online Now</div></div>
+                <div class="stat-card"><div class="number">302</div><div class="label">Fast Redirect</div></div>
+                <div class="stat-card"><div class="number"><%= 1 + (typeof customDomains !== 'undefined' ? customDomains.length : 0) %></div><div class="label">Ready Domains</div></div>
+            </div>
+            <div class="glass-card" style="margin-bottom:2rem;">
+                <h2 style="margin-bottom:.5rem;">✨ What this shortener can do</h2>
+                <p style="color:var(--text-muted);margin-bottom:1.3rem;">Create, update, disable and track branded short URLs. The base domain works immediately; connected custom domains become selectable automatically.</p>
+                <div class="features-grid">
+                    <div class="feature-card"><div class="icon">⚡</div><h3>Fast Redirect</h3><p>Direct HTTP 302 redirect with no waiting page.</p></div>
+                    <div class="feature-card"><div class="icon">🌐</div><h3>Multi Domain</h3><p>Use the base domain or any connected custom domain.</p></div>
+                    <div class="feature-card"><div class="icon">📊</div><h3>Full Analytics</h3><p>Total, today, week, month, country, device and browser.</p></div>
+                    <div class="feature-card"><div class="icon">🤖</div><h3>Bot Detection</h3><p>Separates crawler/bot traffic from real clicks.</p></div>
+                    <div class="feature-card"><div class="icon">🔄</div><h3>Update Anytime</h3><p>Change destination while keeping the same short URL.</p></div>
+                    <div class="feature-card"><div class="icon">👁️</div><h3>Social Preview</h3><p>Preview metadata for Facebook, Telegram, WhatsApp, X, Discord and more.</p></div>
+                </div>
+            </div>
+            <div class="glass-card" style="margin-bottom:2rem;">
+                <h3 style="margin-bottom:1rem;">📱 Social platforms</h3>
+                <div class="features-grid" style="margin-top:0;">
+                    <div class="feature-card"><div class="icon">📘</div><h3>Facebook</h3><p>Short URLs with preview metadata.</p></div>
+                    <div class="feature-card"><div class="icon">✈️</div><h3>Telegram</h3><p>Clean links and preview support.</p></div>
+                    <div class="feature-card"><div class="icon">💬</div><h3>WhatsApp</h3><p>Branded links for chats and campaigns.</p></div>
+                    <div class="feature-card"><div class="icon">𝕏</div><h3>X / Twitter</h3><p>Twitter Card metadata included.</p></div>
+                    <div class="feature-card"><div class="icon">🎮</div><h3>Discord</h3><p>Preview-friendly community links.</p></div>
+                    <div class="feature-card"><div class="icon">📷</div><h3>Other Platforms</h3><p>Works anywhere HTTPS links are accepted.</p></div>
+                </div>
+            </div>
+            <div class="glass-card fade-in">
+                <div style="display:flex;justify-content:space-between;gap:1rem;align-items:center;flex-wrap:wrap;">
+                    <div><h3>👥 Community Users</h3><p style="color:var(--text-muted);font-size:.9rem;">Latest registered names and live status.</p></div>
+                    <span class="live-counter"><span class="dot"></span><span><%= typeof onlineUsers !== 'undefined' ? onlineUsers : 0 %> Online</span></span>
+                </div>
+                <div class="user-list" style="margin-top:1rem;">
+                    <% if (typeof registeredUserList !== 'undefined' && registeredUserList && registeredUserList.length) { %>
+                        <% registeredUserList.forEach(function(u) { %>
+                            <span class="user-badge">👤 <%= u.name %><% if (u.username) { %> <small style="opacity:.6;">@<%= u.username %></small><% } %></span>
+                        <% }); %>
+                    <% } else { %><span style="color:var(--text-muted);">No registered users yet</span><% } %>
                 </div>
             </div>
         <% } %>
@@ -872,7 +853,7 @@
                         <h2 style="font-size: 2rem; font-weight: 800; background: linear-gradient(135deg, var(--text), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">📊 Dashboard</h2>
                         <span class="unlimited-badge" style="margin-top: 0.3rem;">♾️ Unlimited Short Links</span>
                     </div>
-                    <a href="/" class="btn btn-primary">+ Create New Link</a>
+                    <a href="/shorten-page" class="btn btn-primary">+ Create New Link</a>
                 </div>
 
                 <div class="stats-grid">
@@ -1049,28 +1030,6 @@
                     </div>
                 </div>
 
-                <div class="glass-card" style="margin-bottom: 2rem;">
-                    <h3 style="margin-bottom: 0.5rem; font-weight: 700;">🔗 Create New Short Link</h3>
-                    <form action="/shorten" method="POST" class="shorten-form">
-                        <div class="form-group">
-                            <input type="url" class="form-control" name="originalUrl" placeholder="Enter your long URL" required>
-                        </div>
-                        <div class="form-group" style="min-width: 150px; flex: 0.5;">
-                            <input type="text" class="form-control" name="customSlug" placeholder="Custom slug (optional)">
-                        </div>
-                        <div class="form-group" style="min-width: 120px; flex: 0.3;">
-                            <select class="form-control" name="expiresIn">
-                                <option value="">Never</option>
-                                <option value="1">1 Day</option>
-                                <option value="7">7 Days</option>
-                                <option value="30">30 Days</option>
-                                <option value="90">90 Days</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="btn btn-primary">🚀 Shorten</button>
-                    </form>
-                </div>
-
                 <h2 style="margin-bottom: 1.5rem; font-weight: 700;">My Short Links</h2>
 
                 <% if (typeof links !== 'undefined' && links && links.length > 0) { %>
@@ -1130,9 +1089,39 @@
                 <% } else { %>
                     <div class="glass-card" style="text-align: center; padding: 3.5rem;">
                         <p style="color: var(--text-muted); font-size: 1.2rem;">You haven't created any links yet</p>
-                        <p style="color: var(--text-muted); margin-top: 0.5rem;">Use the form above to create your first short link!</p>
+                        <p style="color: var(--text-muted); margin-top: 0.5rem;">Open Short Link from the top menu to create your first short link!</p>
                     </div>
                 <% } %>
+            </div>
+        <% } %>
+
+        <!-- ===== SHORT LINK PAGE ===== -->
+        <% if (page === 'shorten') { %>
+            <div class="fade-in">
+                <div style="text-align:center;margin-bottom:2rem;">
+                    <div style="font-size:3rem;">⚡</div>
+                    <h2 style="font-size:2rem;font-weight:800;">Create a Short Link</h2>
+                    <p style="color:var(--text-muted);">Paste a URL, choose a domain, and get a fast branded short link.</p>
+                </div>
+                <div class="glass-card" style="margin-bottom:2rem;">
+                    <form action="/shorten" method="POST" id="shortenForm">
+                        <div class="form-group"><label>Destination URL</label><input type="url" class="form-control" name="originalUrl" placeholder="https://example.com/your-long-link" required></div>
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;">
+                            <div class="form-group"><label>Short Domain</label><select class="form-control" name="domain" required>
+                                <option value="<%= typeof baseDomain !== 'undefined' ? baseDomain : 'thispersonisbrandshortner.com' %>">⭐ <%= typeof baseDomain !== 'undefined' ? baseDomain : 'thispersonisbrandshortner.com' %> (Base)</option>
+                                <% if (typeof customDomains !== 'undefined' && customDomains && customDomains.length) { %><% customDomains.forEach(function(domain) { %><option value="<%= domain %>">🌐 <%= domain %></option><% }); %><% } %>
+                            </select></div>
+                            <div class="form-group"><label>Custom Path (optional)</label><input type="text" class="form-control" name="customSlug" maxlength="48" pattern="[A-Za-z0-9_-]+" placeholder="my-link"></div>
+                            <div class="form-group"><label>Expiry</label><select class="form-control" name="expiresIn"><option value="">Never</option><option value="1">1 Day</option><option value="7">7 Days</option><option value="30">30 Days</option><option value="90">90 Days</option></select></div>
+                        </div>
+                        <button type="submit" class="btn btn-primary" id="shortenBtn" style="width:100%;justify-content:center;padding:1rem;">🚀 Create Short Link</button>
+                    </form>
+                    <% if (typeof customDomains === 'undefined' || !customDomains || customDomains.length === 0) { %><div class="alert alert-info" style="margin-top:1rem;margin-bottom:0;">ℹ️ Only the base domain is active. Connected custom domains will appear here after you set DOMAIN_1, DOMAIN_2, etc. in Railway.</div><% } %>
+                </div>
+                <% if (typeof shortUrl !== 'undefined' && shortUrl) { %><div class="short-link-display" style="margin-bottom:2rem;"><div><div style="font-size:.8rem;color:var(--text-muted);margin-bottom:.3rem;">YOUR NEW SHORT LINK</div><span class="link"><%= shortUrl %></span></div><div style="display:flex;gap:.5rem;flex-wrap:wrap;"><button class="copy-btn" onclick="copyToClipboard('<%= shortUrl %>')">📋 Copy</button><a class="btn btn-secondary btn-sm" href="<%= shortUrl %>" target="_blank">↗ Test</a></div></div><% } %>
+                <div class="glass-card" style="margin-bottom:2rem;"><h3 style="margin-bottom:.5rem;">👁️ Social Preview</h3><p style="color:var(--text-muted);font-size:.9rem;">Supported social crawlers see your short-domain title and a light description; normal visitors still redirect immediately.</p><div style="margin-top:1rem;background:#fff;color:#222;border-radius:14px;overflow:hidden;max-width:560px;box-shadow:var(--shadow);"><div style="height:130px;background:linear-gradient(135deg,#111827,#312e81);display:flex;align-items:center;justify-content:center;color:#fff;font-size:2.3rem;">🔗</div><div style="padding:1rem;"><div style="font-size:.75rem;text-transform:uppercase;color:#777;"><%= typeof baseDomain !== 'undefined' ? baseDomain : 'thispersonisbrandshortner.com' %></div><strong style="display:block;margin:.25rem 0;"><%= typeof baseDomain !== 'undefined' ? baseDomain : 'thispersonisbrandshortner.com' %></strong><span style="font-size:.85rem;color:#666;">Fast, clean and secure short links powered by THIS PERSON IS BRAND.</span></div></div></div>
+                <h2 style="margin-bottom:1rem;">Recent Short Links</h2>
+                <% if (typeof links !== 'undefined' && links && links.length) { %><% links.forEach(function(link) { %><div class="link-card"><div class="link-top"><div><a class="link-url" href="<%= link.shortUrl %>" target="_blank">🔗 <%= link.shortUrl %></a><div class="link-original">→ <%= link.originalUrl %></div></div><button class="btn btn-secondary btn-sm copy-link-btn" data-url="<%= link.shortUrl %>">📋 Copy</button></div><div class="link-meta"><span>👁️ <%= link.clicks || 0 %> clicks</span><span>🌐 <%= link.selectedDomain || (typeof baseDomain !== 'undefined' ? baseDomain : '') %></span></div></div><% }); %><% } else { %><div class="glass-card" style="text-align:center;color:var(--text-muted);">No links yet. Create your first one above.</div><% } %>
             </div>
         <% } %>
 
