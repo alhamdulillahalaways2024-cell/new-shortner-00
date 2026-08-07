@@ -88,6 +88,8 @@ app.use('/api/', limiter);
 
 // Session
 app.use(session({
+  proxy: true,
+  name: 'tpib.sid',
   secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
@@ -263,7 +265,7 @@ function authMiddleware(req, res, next) {
       return next();
     }
   }
-  req.session.returnTo = req.originalUrl;
+  if (req.originalUrl !== '/login') req.session.returnTo = req.originalUrl;
   res.redirect('/login');
 }
 
@@ -325,20 +327,30 @@ app.get('/', (req, res) => {
 // ===== LOGIN PAGE =====
 app.get('/login', (req, res) => {
   try {
+    // Read data once for this request so it is available for both
+    // session lookup and template statistics.
+    const data = readData();
+
     // If already logged in, redirect to dashboard
     if (req.session && req.session.user) {
-      const data = readData();
       const user = data.users.find(u => u.id === req.session.user.id);
       if (user) {
         return res.redirect('/dashboard');
       }
     }
 
+    const now = Date.now();
+    const activeUsers = (data.onlineUsers || []).filter(u => (now - Number(u.lastSeen || 0)) < 5 * 60 * 1000);
+    if (activeUsers.length !== (data.onlineUsers || []).length) {
+      data.onlineUsers = activeUsers;
+      writeData(data);
+    }
+
     res.render('index', {
       page: 'login',
       user: null,
-      onlineUsers: 0,
-      onlineUserList: [],
+      onlineUsers: activeUsers.length,
+      onlineUserList: activeUsers.map(u => ({ name: u.displayName || u.username || 'User' })),
       countries: countries,
       error: req.query.error || null,
       success: req.query.success || null,
@@ -452,7 +464,8 @@ app.post('/login', (req, res) => {
       isAdmin: user.isAdmin
     };
 
-    const returnTo = req.session.returnTo || '/dashboard';
+    const requestedReturnTo = req.session.returnTo;
+    const returnTo = (requestedReturnTo && requestedReturnTo !== '/login' && requestedReturnTo.startsWith('/')) ? requestedReturnTo : '/dashboard';
     delete req.session.returnTo;
     return req.session.save((sessionError) => {
       if (sessionError) {
