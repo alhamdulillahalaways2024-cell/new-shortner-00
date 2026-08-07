@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>This Person Is brand Shortlink</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%20%20%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2215%22%20fill%3D%22%23111827%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M24%2018h-5a11%2011%200%200%200%200%2022h10a11%2011%200%200%200%208.6-4.1%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M40%2046h5a11%2011%200%200%200%200-22H35a11%2011%200%200%200-8.6%204.1%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M24%2032h16%22%20stroke%3D%22%23fff%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%2F%3E%0A%3C%2Fsvg%3E">
+    <link rel="shortcut icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%20%20%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2215%22%20fill%3D%22%23111827%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M24%2018h-5a11%2011%200%200%200%200%2022h10a11%2011%200%200%200%208.6-4.1%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M40%2046h5a11%2011%200%200%200%200-22H35a11%2011%200%200%200-8.6%204.1%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M24%2032h16%22%20stroke%3D%22%23fff%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%2F%3E%0A%3C%2Fsvg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
@@ -1544,7 +1547,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             var select = document.getElementById('userTimezone');
             if (select) {
-                var userTimezone = '<%= typeof user !== "undefined" && user.timezone ? user.timezone : "Asia/Dhaka" %>';
+                var userTimezone = '<%= (typeof user !== "undefined" && user && user.timezone) ? user.timezone : "Asia/Dhaka" %>';
                 if (userTimezone) select.value = userTimezone;
                 updateCurrentTime();
                 convertLinkDates();
