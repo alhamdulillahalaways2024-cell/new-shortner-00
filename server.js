@@ -3,6 +3,7 @@ const session = require('express-session');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
 const fs = require('fs');
 const QRCode = require('qrcode');
@@ -27,7 +28,7 @@ const BASE_URL = process.env.BASE_URL || 'https://thispersonisbrandshortner.com'
 // ===== DATA STORAGE =====
 const DATA_FILE = './data.json';
 
-// Initialize data file
+// Initialize data file if it doesn't exist
 if (!fs.existsSync(DATA_FILE)) {
   fs.writeFileSync(DATA_FILE, JSON.stringify({
     users: [],
@@ -65,6 +66,15 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+app.use('/api/', limiter);
+
 // Session
 app.use(session({
   secret: SESSION_SECRET,
@@ -81,6 +91,9 @@ app.use(session({
 // View engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+
+// Static files
+app.use(express.static(path.join(__dirname, 'public')));
 
 // ===== COUNTRY DATA =====
 const countries = {
@@ -194,7 +207,7 @@ function getBaseUrl(req) {
 
 // ===== AUTH MIDDLEWARE =====
 function authMiddleware(req, res, next) {
-  if (req.session.user) {
+  if (req.session && req.session.user) {
     const data = readData();
     const user = data.users.find(u => u.id === req.session.user.id);
     if (user) {
@@ -207,11 +220,23 @@ function authMiddleware(req, res, next) {
 }
 
 // ===== ROUTES =====
+
+// ===== HOME PAGE - FIXED =====
 app.get('/', (req, res) => {
   try {
+    // Check if user is logged in
+    if (req.session && req.session.user) {
+      const data = readData();
+      const user = data.users.find(u => u.id === req.session.user.id);
+      if (user) {
+        // User is logged in - redirect to dashboard
+        return res.redirect('/dashboard');
+      }
+    }
+    
+    // User is not logged in - show home page with login option
     const data = readData();
     const onlineUsers = data.onlineUsers || [];
-    const user = req.session.user || null;
     
     // Clean up stale online users
     const now = Date.now();
@@ -225,7 +250,7 @@ app.get('/', (req, res) => {
 
     res.render('index', {
       page: 'home',
-      user: user,
+      user: null,
       onlineUsers: activeUsers.length,
       onlineUserList: userNames,
       countries: countries,
@@ -238,29 +263,43 @@ app.get('/', (req, res) => {
     });
   } catch (error) {
     console.error('Home error:', error);
-    res.send('Server is running!');
+    // Fallback: show login page
+    res.redirect('/login');
   }
 });
 
+// ===== LOGIN PAGE =====
 app.get('/login', (req, res) => {
-  if (req.session.user) {
-    return res.redirect('/');
+  try {
+    // If already logged in, redirect to dashboard
+    if (req.session && req.session.user) {
+      const data = readData();
+      const user = data.users.find(u => u.id === req.session.user.id);
+      if (user) {
+        return res.redirect('/dashboard');
+      }
+    }
+
+    res.render('index', {
+      page: 'login',
+      user: null,
+      onlineUsers: 0,
+      onlineUserList: [],
+      countries: countries,
+      error: req.query.error || null,
+      success: req.query.success || null,
+      info: null,
+      shortUrl: null,
+      customDomains: CUSTOM_DOMAINS,
+      baseUrl: getBaseUrl(req)
+    });
+  } catch (error) {
+    console.error('Login page error:', error);
+    res.send('Login page error: ' + error.message);
   }
-  res.render('index', {
-    page: 'login',
-    user: null,
-    onlineUsers: 0,
-    onlineUserList: [],
-    countries: countries,
-    error: null,
-    success: null,
-    info: null,
-    shortUrl: null,
-    customDomains: CUSTOM_DOMAINS,
-    baseUrl: getBaseUrl(req)
-  });
 });
 
+// ===== LOGIN POST =====
 app.post('/login', (req, res) => {
   try {
     const { telegramId, username, firstName, lastName, email, timezone } = req.body;
@@ -341,7 +380,7 @@ app.post('/login', (req, res) => {
       isAdmin: user.isAdmin
     };
 
-    const returnTo = req.session.returnTo || '/';
+    const returnTo = req.session.returnTo || '/dashboard';
     delete req.session.returnTo;
     res.redirect(returnTo);
   } catch (error) {
@@ -362,8 +401,9 @@ app.post('/login', (req, res) => {
   }
 });
 
+// ===== LOGOUT =====
 app.post('/logout', (req, res) => {
-  if (req.session.user) {
+  if (req.session && req.session.user) {
     const data = readData();
     data.onlineUsers = data.onlineUsers.filter(u => u.id !== req.session.user.id);
     writeData(data);
@@ -373,73 +413,7 @@ app.post('/logout', (req, res) => {
   });
 });
 
-app.post('/shorten', authMiddleware, (req, res) => {
-  try {
-    const { originalUrl, customSlug, expiresIn } = req.body;
-    const baseUrl = getBaseUrl(req);
-    
-    if (!originalUrl) {
-      return res.redirect('/?error=' + encodeURIComponent('Please enter a URL'));
-    }
-
-    try {
-      new URL(originalUrl);
-    } catch (e) {
-      return res.redirect('/?error=' + encodeURIComponent('Invalid URL format'));
-    }
-
-    const data = readData();
-    let shortCode = generateShortCode();
-    
-    if (customSlug) {
-      const existing = data.links.find(l => l.shortCode === customSlug);
-      if (existing) {
-        return res.redirect('/?error=' + encodeURIComponent('Custom slug already taken'));
-      }
-      shortCode = customSlug;
-    }
-
-    let expiresAt = null;
-    if (expiresIn) {
-      const duration = parseInt(expiresIn);
-      if (!isNaN(duration)) {
-        expiresAt = new Date(Date.now() + duration * 24 * 60 * 60 * 1000).toISOString();
-      }
-    }
-
-    const newId = data.counters.linkId + 1;
-    const link = {
-      id: newId,
-      userId: req.user.id,
-      originalUrl: originalUrl,
-      shortCode: shortCode,
-      customSlug: customSlug || null,
-      title: '',
-      clicks: 0,
-      isActive: true,
-      isExpired: false,
-      expiresAt: expiresAt,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    data.links.push(link);
-    data.counters.linkId = newId;
-    
-    const user = data.users.find(u => u.id === req.user.id);
-    if (user) user.totalLinks = (user.totalLinks || 0) + 1;
-    
-    writeData(data);
-
-    const shortUrl = baseUrl + '/' + shortCode;
-
-    res.redirect('/?success=' + encodeURIComponent('Link created successfully!') + '&shortUrl=' + encodeURIComponent(shortUrl));
-  } catch (error) {
-    console.error('Shorten error:', error);
-    res.redirect('/?error=' + encodeURIComponent('Failed to create short link: ' + error.message));
-  }
-});
-
+// ===== DASHBOARD (Protected) =====
 app.get('/dashboard', authMiddleware, (req, res) => {
   try {
     const user = req.user;
@@ -528,8 +502,8 @@ app.get('/dashboard', authMiddleware, (req, res) => {
       weekData: weekData,
       countries: countries,
       onlineUserList: [],
-      error: null,
-      success: null,
+      error: req.query.error || null,
+      success: req.query.success || null,
       info: null,
       shortUrl: null,
       customDomains: CUSTOM_DOMAINS,
@@ -564,9 +538,84 @@ app.get('/dashboard', authMiddleware, (req, res) => {
   }
 });
 
+// ===== SHORTEN URL =====
+app.post('/shorten', authMiddleware, (req, res) => {
+  try {
+    const { originalUrl, customSlug, expiresIn } = req.body;
+    const baseUrl = getBaseUrl(req);
+    
+    if (!originalUrl) {
+      return res.redirect('/dashboard?error=' + encodeURIComponent('Please enter a URL'));
+    }
+
+    try {
+      new URL(originalUrl);
+    } catch (e) {
+      return res.redirect('/dashboard?error=' + encodeURIComponent('Invalid URL format'));
+    }
+
+    const data = readData();
+    let shortCode = generateShortCode();
+    
+    if (customSlug) {
+      const existing = data.links.find(l => l.shortCode === customSlug);
+      if (existing) {
+        return res.redirect('/dashboard?error=' + encodeURIComponent('Custom slug already taken'));
+      }
+      shortCode = customSlug;
+    }
+
+    let expiresAt = null;
+    if (expiresIn) {
+      const duration = parseInt(expiresIn);
+      if (!isNaN(duration)) {
+        expiresAt = new Date(Date.now() + duration * 24 * 60 * 60 * 1000).toISOString();
+      }
+    }
+
+    const newId = data.counters.linkId + 1;
+    const link = {
+      id: newId,
+      userId: req.user.id,
+      originalUrl: originalUrl,
+      shortCode: shortCode,
+      customSlug: customSlug || null,
+      title: '',
+      clicks: 0,
+      isActive: true,
+      isExpired: false,
+      expiresAt: expiresAt,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    data.links.push(link);
+    data.counters.linkId = newId;
+    
+    const user = data.users.find(u => u.id === req.user.id);
+    if (user) user.totalLinks = (user.totalLinks || 0) + 1;
+    
+    writeData(data);
+
+    const shortUrl = baseUrl + '/' + shortCode;
+
+    res.redirect('/dashboard?success=' + encodeURIComponent('Link created successfully!') + '&shortUrl=' + encodeURIComponent(shortUrl));
+  } catch (error) {
+    console.error('Shorten error:', error);
+    res.redirect('/dashboard?error=' + encodeURIComponent('Failed to create short link: ' + error.message));
+  }
+});
+
+// ===== REDIRECT SHORT URL =====
 app.get('/:code', (req, res) => {
   try {
     const code = req.params.code;
+    
+    // Skip if it's a known route
+    if (code === 'favicon.ico' || code === 'robots.txt' || code === 'sitemap.xml') {
+      return res.status(404).send('Not found');
+    }
+    
     const data = readData();
     const link = data.links.find(l => 
       (l.shortCode === code || l.customSlug === code) && l.isActive === true
@@ -634,6 +683,7 @@ app.get('/:code', (req, res) => {
   }
 });
 
+// ===== UPDATE LINK =====
 app.post('/update-link/:id', authMiddleware, (req, res) => {
   try {
     const data = readData();
@@ -666,6 +716,7 @@ app.post('/update-link/:id', authMiddleware, (req, res) => {
   }
 });
 
+// ===== TOGGLE LINK =====
 app.post('/toggle-link/:id', authMiddleware, (req, res) => {
   try {
     const data = readData();
@@ -687,6 +738,7 @@ app.post('/toggle-link/:id', authMiddleware, (req, res) => {
   }
 });
 
+// ===== DELETE LINK =====
 app.post('/delete-link/:id', authMiddleware, (req, res) => {
   try {
     const data = readData();
@@ -709,6 +761,7 @@ app.post('/delete-link/:id', authMiddleware, (req, res) => {
   }
 });
 
+// ===== QR CODE =====
 app.get('/qr/:code', async (req, res) => {
   try {
     const code = req.params.code;
@@ -739,6 +792,7 @@ app.get('/qr/:code', async (req, res) => {
   }
 });
 
+// ===== API: USER DATA =====
 app.get('/api/user-data', authMiddleware, (req, res) => {
   try {
     const data = readData();
@@ -782,6 +836,7 @@ app.get('/api/user-data', authMiddleware, (req, res) => {
   }
 });
 
+// ===== API: UPDATE PROFILE =====
 app.post('/api/update-profile', authMiddleware, (req, res) => {
   try {
     const data = readData();
@@ -839,6 +894,7 @@ app.post('/api/update-profile', authMiddleware, (req, res) => {
   }
 });
 
+// ===== API: UPDATE TIMEZONE =====
 app.post('/api/update-timezone', authMiddleware, (req, res) => {
   try {
     const { timezone } = req.body;
@@ -864,6 +920,7 @@ app.post('/api/update-timezone', authMiddleware, (req, res) => {
   }
 });
 
+// ===== API: ONLINE USERS =====
 app.get('/api/online-users', (req, res) => {
   try {
     const data = readData();
@@ -889,17 +946,18 @@ app.get('/api/online-users', (req, res) => {
   }
 });
 
-// Health check endpoint
+// ===== HEALTH CHECK =====
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     timestamp: new Date().toISOString(),
     domains: CUSTOM_DOMAINS,
-    baseUrl: BASE_URL
+    baseUrl: BASE_URL,
+    uptime: process.uptime()
   });
 });
 
-// Update online status middleware
+// ===== UPDATE ONLINE STATUS MIDDLEWARE =====
 app.use((req, res, next) => {
   if (req.session && req.session.user) {
     const data = readData();
@@ -919,6 +977,23 @@ app.use((req, res, next) => {
   next();
 });
 
+// ===== 404 ERROR HANDLER =====
+app.use((req, res) => {
+  res.status(404).render('index', {
+    page: '404',
+    user: req.session?.user || null,
+    onlineUsers: 0,
+    onlineUserList: [],
+    countries: countries,
+    error: 'Page not found',
+    success: null,
+    info: null,
+    shortUrl: null,
+    customDomains: CUSTOM_DOMAINS,
+    baseUrl: getBaseUrl(req)
+  });
+});
+
 // ===== START SERVER =====
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
@@ -928,4 +1003,6 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`   ${i + 1}. https://${domain}`);
   });
   console.log(`✅ Health check: ${BASE_URL}/health`);
+  console.log(`🔐 Login page: ${BASE_URL}/login`);
+  console.log(`📊 Dashboard: ${BASE_URL}/dashboard`);
 });
