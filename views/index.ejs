@@ -1544,7 +1544,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             var select = document.getElementById('userTimezone');
             if (select) {
-                var userTimezone = '<%= (typeof user !== "undefined" && user && user.timezone) ? user.timezone : "Asia/Dhaka" %>';
+                var userTimezone = '<%= typeof user !== "undefined" && user.timezone ? user.timezone : "Asia/Dhaka" %>';
                 if (userTimezone) select.value = userTimezone;
                 updateCurrentTime();
                 convertLinkDates();
