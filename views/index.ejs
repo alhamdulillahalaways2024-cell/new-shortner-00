@@ -252,6 +252,15 @@
             min-width: 200px;
         }
         .timezone-selector select:focus { border-color: var(--primary); outline: none; }
+        .timezone-selector select option {
+            background: #1A1A2E;
+            color: #FFFFFF;
+            padding: 10px;
+        }
+        .timezone-selector select option:checked {
+            background: #6C63FF;
+            color: #FFFFFF;
+        }
         .timezone-display { font-size: 0.9rem; color: var(--text-muted); }
 
         .link-card {
@@ -741,6 +750,35 @@
                         <select class="form-control" id="timezone" name="timezone">
                             <option value="Asia/Dhaka">🇧🇩 Bangladesh (Asia/Dhaka)</option>
                             <option value="Asia/Kolkata">🇮🇳 India (Asia/Kolkata)</option>
+                            <option value="Asia/Karachi">🇵🇰 Pakistan (Asia/Karachi)</option>
+                            <option value="Asia/Dubai">🇦🇪 UAE (Asia/Dubai)</option>
+                            <option value="Asia/Riyadh">🇸🇦 Saudi Arabia (Asia/Riyadh)</option>
+                            <option value="Asia/Qatar">🇶🇦 Qatar (Asia/Qatar)</option>
+                            <option value="Asia/Kuwait">🇰🇼 Kuwait (Asia/Kuwait)</option>
+                            <option value="Asia/Muscat">🇴🇲 Oman (Asia/Muscat)</option>
+                            <option value="Asia/Singapore">🇸🇬 Singapore (Asia/Singapore)</option>
+                            <option value="Asia/Kuala_Lumpur">🇲🇾 Malaysia (Asia/Kuala_Lumpur)</option>
+                            <option value="Asia/Manila">🇵🇭 Philippines (Asia/Manila)</option>
+                            <option value="Asia/Bangkok">🇹🇭 Thailand (Asia/Bangkok)</option>
+                            <option value="Asia/Jakarta">🇮🇩 Indonesia (Asia/Jakarta)</option>
+                            <option value="Asia/Ho_Chi_Minh">🇻🇳 Vietnam (Asia/Ho_Chi_Minh)</option>
+                            <option value="Asia/Tokyo">🇯🇵 Japan (Asia/Tokyo)</option>
+                            <option value="Asia/Seoul">🇰🇷 South Korea (Asia/Seoul)</option>
+                            <option value="Europe/London">🇬🇧 United Kingdom (Europe/London)</option>
+                            <option value="Europe/Berlin">🇩🇪 Germany (Europe/Berlin)</option>
+                            <option value="Europe/Paris">🇫🇷 France (Europe/Paris)</option>
+                            <option value="Europe/Rome">🇮🇹 Italy (Europe/Rome)</option>
+                            <option value="Europe/Madrid">🇪🇸 Spain (Europe/Madrid)</option>
+                            <option value="Europe/Amsterdam">🇳🇱 Netherlands (Europe/Amsterdam)</option>
+                            <option value="America/New_York">🇺🇸 USA - New York (America/New_York)</option>
+                            <option value="America/Chicago">🇺🇸 USA - Chicago (America/Chicago)</option>
+                            <option value="America/Denver">🇺🇸 USA - Denver (America/Denver)</option>
+                            <option value="America/Los_Angeles">🇺🇸 USA - Los Angeles (America/Los_Angeles)</option>
+                            <option value="America/Toronto">🇨🇦 Canada - Toronto (America/Toronto)</option>
+                            <option value="America/Vancouver">🇨🇦 Canada - Vancouver (America/Vancouver)</option>
+                            <option value="Australia/Sydney">🇦🇺 Australia - Sydney (Australia/Sydney)</option>
+                            <option value="Pacific/Auckland">🇳🇿 New Zealand (Pacific/Auckland)</option>
+                            <option value="Asia/Kolkata">🇮🇳 India (Asia/Kolkata)</option>
                             <option value="America/New_York">🇺🇸 USA (America/New_York)</option>
                             <option value="Europe/London">🇬🇧 UK (Europe/London)</option>
                             <option value="Europe/Berlin">🇩🇪 Germany (Europe/Berlin)</option>
@@ -927,6 +965,35 @@
                         <span style="color: var(--text-muted);">🌍 Current Timezone:</span>
                         <select id="userTimezone" onchange="updateTimezone()">
                             <option value="Asia/Dhaka">🇧🇩 Bangladesh (Asia/Dhaka)</option>
+                            <option value="Asia/Kolkata">🇮🇳 India (Asia/Kolkata)</option>
+                            <option value="Asia/Karachi">🇵🇰 Pakistan (Asia/Karachi)</option>
+                            <option value="Asia/Dubai">🇦🇪 UAE (Asia/Dubai)</option>
+                            <option value="Asia/Riyadh">🇸🇦 Saudi Arabia (Asia/Riyadh)</option>
+                            <option value="Asia/Qatar">🇶🇦 Qatar (Asia/Qatar)</option>
+                            <option value="Asia/Kuwait">🇰🇼 Kuwait (Asia/Kuwait)</option>
+                            <option value="Asia/Muscat">🇴🇲 Oman (Asia/Muscat)</option>
+                            <option value="Asia/Singapore">🇸🇬 Singapore (Asia/Singapore)</option>
+                            <option value="Asia/Kuala_Lumpur">🇲🇾 Malaysia (Asia/Kuala_Lumpur)</option>
+                            <option value="Asia/Manila">🇵🇭 Philippines (Asia/Manila)</option>
+                            <option value="Asia/Bangkok">🇹🇭 Thailand (Asia/Bangkok)</option>
+                            <option value="Asia/Jakarta">🇮🇩 Indonesia (Asia/Jakarta)</option>
+                            <option value="Asia/Ho_Chi_Minh">🇻🇳 Vietnam (Asia/Ho_Chi_Minh)</option>
+                            <option value="Asia/Tokyo">🇯🇵 Japan (Asia/Tokyo)</option>
+                            <option value="Asia/Seoul">🇰🇷 South Korea (Asia/Seoul)</option>
+                            <option value="Europe/London">🇬🇧 United Kingdom (Europe/London)</option>
+                            <option value="Europe/Berlin">🇩🇪 Germany (Europe/Berlin)</option>
+                            <option value="Europe/Paris">🇫🇷 France (Europe/Paris)</option>
+                            <option value="Europe/Rome">🇮🇹 Italy (Europe/Rome)</option>
+                            <option value="Europe/Madrid">🇪🇸 Spain (Europe/Madrid)</option>
+                            <option value="Europe/Amsterdam">🇳🇱 Netherlands (Europe/Amsterdam)</option>
+                            <option value="America/New_York">🇺🇸 USA - New York (America/New_York)</option>
+                            <option value="America/Chicago">🇺🇸 USA - Chicago (America/Chicago)</option>
+                            <option value="America/Denver">🇺🇸 USA - Denver (America/Denver)</option>
+                            <option value="America/Los_Angeles">🇺🇸 USA - Los Angeles (America/Los_Angeles)</option>
+                            <option value="America/Toronto">🇨🇦 Canada - Toronto (America/Toronto)</option>
+                            <option value="America/Vancouver">🇨🇦 Canada - Vancouver (America/Vancouver)</option>
+                            <option value="Australia/Sydney">🇦🇺 Australia - Sydney (Australia/Sydney)</option>
+                            <option value="Pacific/Auckland">🇳🇿 New Zealand (Pacific/Auckland)</option>
                             <option value="Asia/Kolkata">🇮🇳 India (Asia/Kolkata)</option>
                             <option value="America/New_York">🇺🇸 USA (America/New_York)</option>
                             <option value="Europe/London">🇬🇧 UK (Europe/London)</option>
