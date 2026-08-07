@@ -25,6 +25,13 @@ const CUSTOM_DOMAINS = [
 
 const BASE_URL = process.env.BASE_URL || 'https://thispersonisbrandshortner.com';
 
+// ===== VIEW ENGINE SETUP =====
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
+// ===== STATIC FILES =====
+app.use(express.static(path.join(__dirname, 'public')));
+
 // ===== DATA STORAGE =====
 const DATA_FILE = './data.json';
 
@@ -87,13 +94,6 @@ app.use(session({
     sameSite: 'lax'
   }
 }));
-
-// View engine
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
-
-// Static files
-app.use(express.static(path.join(__dirname, 'public')));
 
 // ===== COUNTRY DATA =====
 const countries = {
@@ -221,7 +221,7 @@ function authMiddleware(req, res, next) {
 
 // ===== ROUTES =====
 
-// ===== HOME PAGE - FIXED =====
+// ===== HOME PAGE =====
 app.get('/', (req, res) => {
   try {
     // Check if user is logged in
