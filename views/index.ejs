@@ -1887,6 +1887,134 @@
         .chart-fallback i{color:#FFE08A;font-size:1.35rem}
         .chart-fallback span{font-size:.72rem;color:#9EADCC}
 
+
+        .login-only-overlay{position:fixed!important;inset:0!important;z-index:5000!important;align-items:center!important;justify-content:center!important;padding:16px!important;overflow:hidden!important;background:rgba(5,10,24,.96)!important;backdrop-filter:blur(18px)!important}
+        body:has(.login-only-overlay){overflow:hidden!important}
+        body:has(.login-only-overlay) .container{padding:0!important;max-width:none!important}
+        .login-only-overlay .login-modal-card{width:min(560px,100%)!important;max-width:560px!important;max-height:calc(100vh - 32px)!important;margin:0!important;padding:1rem 1.2rem 1.25rem!important;overflow-y:auto!important;overscroll-behavior:contain!important;border-radius:22px!important}
+        .login-modal-top{position:sticky;top:-1rem;z-index:5;margin:-1rem -1.2rem .8rem;padding:.75rem .9rem;display:flex;justify-content:space-between;align-items:center;background:rgba(18,27,54,.97);border-bottom:1px solid rgba(255,255,255,.08)}
+        .login-security{display:inline-flex;gap:.4rem;align-items:center;color:#8CFFD1;font-size:.68rem;font-weight:800}
+        .login-close-btn{display:inline-flex;gap:.4rem;align-items:center;padding:.4rem .6rem;border-radius:10px;color:#fff!important;text-decoration:none!important;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);font-size:.7rem;font-weight:800}
+        .my-links-header{display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;flex-wrap:wrap;margin-bottom:1rem}
+        .my-links-header h1{font-family:'Manrope',sans-serif;font-size:1.8rem;margin:.2rem 0;color:#fff}.my-links-header p{color:#A7B4CF!important;font-size:.82rem}
+        .my-links-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem;margin-bottom:1rem}
+        .mini-summary-card{padding:.85rem 1rem;border-radius:15px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);display:flex;justify-content:space-between;align-items:center}.mini-summary-card span{font-size:.72rem;color:#9EADCA}.mini-summary-card strong{font-size:1.2rem;color:#fff}
+        .my-links-panel{padding:1rem!important}.my-links-panel-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem}.my-links-panel-title span{font-size:.7rem;color:#9EADCA}.my-link-owned-card{padding:1rem!important}.my-link-quick-actions{display:flex;gap:.4rem;flex-wrap:wrap}.empty-links-state{text-align:center;padding:3rem 1rem;color:#AEBBD5}
+        .copy-payment-row{display:flex;align-items:center;justify-content:space-between;gap:.5rem;min-width:0}.copy-payment-row strong{min-width:0;word-break:break-word}.copy-payment-btn{flex:0 0 auto;display:inline-flex;align-items:center;gap:.3rem;padding:.3rem .48rem;border-radius:9px;cursor:pointer;color:#EAF8FF;background:rgba(39,215,255,.075);border:1px solid rgba(39,215,255,.16);font-family:inherit;font-size:.62rem;font-weight:800;transition:all .2s ease}.copy-payment-btn:hover{transform:translateY(-2px);background:rgba(39,215,255,.13)}
+        @media(max-width:650px){.my-links-summary{grid-template-columns:1fr}.login-only-overlay{padding:8px!important}.login-only-overlay .login-modal-card{max-height:calc(100vh - 16px)!important}}
+
+
+        /* ===== V7.10 LOGIN POPUP CONTAINED + TOP UI VISIBLE ===== */
+        body:has(.login-only-overlay){
+            overflow:auto!important;
+        }
+
+        body:has(.login-only-overlay) .container{
+            max-width:1500px!important;
+            padding-top:1rem!important;
+            padding-bottom:3rem!important;
+        }
+
+        .login-only-overlay{
+            position:relative!important;
+            inset:auto!important;
+            z-index:50!important;
+            width:100%!important;
+            min-height:calc(100vh - 260px)!important;
+            display:flex!important;
+            align-items:flex-start!important;
+            justify-content:center!important;
+            padding:24px 16px 40px!important;
+            overflow:visible!important;
+            background:transparent!important;
+            backdrop-filter:none!important;
+        }
+
+        .login-only-overlay .login-modal-card{
+            width:min(560px,100%)!important;
+            max-width:560px!important;
+            max-height:calc(100vh - 300px)!important;
+            min-height:420px!important;
+            margin:0 auto!important;
+            padding:1rem 1.2rem 1.25rem!important;
+            overflow-y:auto!important;
+            overflow-x:hidden!important;
+            overscroll-behavior:contain!important;
+            border-radius:22px!important;
+            position:relative!important;
+            background:linear-gradient(180deg,rgba(25,35,68,.97),rgba(14,22,47,.97))!important;
+            border:1px solid rgba(124,92,255,.28)!important;
+            box-shadow:0 28px 90px rgba(0,0,0,.42),0 0 45px rgba(39,215,255,.06)!important;
+        }
+
+        .login-modal-top{
+            position:sticky!important;
+            top:-1rem!important;
+            z-index:6!important;
+            margin:-1rem -1.2rem .9rem!important;
+            padding:.75rem .9rem!important;
+            display:flex!important;
+            justify-content:space-between!important;
+            align-items:center!important;
+            gap:.7rem!important;
+            background:rgba(18,27,54,.985)!important;
+            border-bottom:1px solid rgba(255,255,255,.08)!important;
+            backdrop-filter:blur(16px)!important;
+        }
+
+        .login-close-btn{
+            display:inline-flex!important;
+            align-items:center!important;
+            gap:.4rem!important;
+            padding:.42rem .65rem!important;
+            border-radius:10px!important;
+            color:#fff!important;
+            text-decoration:none!important;
+            background:rgba(255,255,255,.07)!important;
+            border:1px solid rgba(255,255,255,.12)!important;
+            font-size:.7rem!important;
+            font-weight:800!important;
+        }
+
+        .login-close-btn:hover{
+            background:rgba(255,94,122,.12)!important;
+            border-color:rgba(255,94,122,.25)!important;
+        }
+
+        .login-only-overlay .login-modal-card::-webkit-scrollbar{
+            width:6px;
+        }
+        .login-only-overlay .login-modal-card::-webkit-scrollbar-thumb{
+            background:linear-gradient(#7C5CFF,#27D7FF);
+            border-radius:999px;
+        }
+
+        @media(max-width:900px){
+            .login-only-overlay{
+                min-height:auto!important;
+                padding:18px 10px 32px!important;
+            }
+            .login-only-overlay .login-modal-card{
+                max-height:calc(100vh - 260px)!important;
+                min-height:380px!important;
+            }
+        }
+
+        @media(max-width:600px){
+            .login-only-overlay{
+                padding:12px 8px 28px!important;
+            }
+            .login-only-overlay .login-modal-card{
+                max-height:calc(100vh - 230px)!important;
+                min-height:340px!important;
+                padding:.9rem 1rem 1rem!important;
+            }
+            .login-modal-top{
+                top:-.9rem!important;
+                margin:-.9rem -1rem .8rem!important;
+            }
+        }
+
 </style>
 </head>
 <body>
@@ -2003,9 +2131,9 @@
     </nav>
 <% } %>
 
-    <div class="container <%= (typeof user !== 'undefined' && user && page !== 'admin' && page !== 'admin-login') ? 'user-layout-container' : '' %>">
+    <div class="container <%= (typeof user !== 'undefined' && user && page !== 'admin' && page !== 'admin-login' && page !== 'login') ? 'user-layout-container' : '' %>">
 
-        <% if (typeof user !== 'undefined' && user && page !== 'admin' && page !== 'admin-login') { %>
+        <% if (typeof user !== 'undefined' && user && page !== 'admin' && page !== 'admin-login' && page !== 'login') { %>
             <aside class="global-user-sidebar">
                 <div class="sidebar-user global-sidebar-user">
                     <div class="sidebar-avatar">
@@ -2030,7 +2158,7 @@
                     <a class="<%= page === 'home' ? 'active' : '' %>" href="/"><i class="fas fa-house"></i><span>Home</span></a>
                     <a class="<%= page === 'dashboard' ? 'active' : '' %>" href="/dashboard"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
                     <a class="<%= page === 'shorten' ? 'active' : '' %>" href="/shorten-page"><i class="fas fa-plus"></i><span>Create Link</span></a>
-                    <a class="<%= page === 'shorten' ? 'active-sub' : '' %>" href="/shorten-page"><i class="fas fa-link"></i><span>My Short Links</span></a>
+                    <a class="<%= page === 'my-links' ? 'active' : '' %>" href="/my-links"><i class="fas fa-link"></i><span>My Short Links</span></a>
                     <a class="<%= page === 'api-access' ? 'active' : '' %>" href="/api-access"><i class="fas fa-code"></i><span>API Access</span><span class="side-tag">PRO</span></a>
                     <a class="<%= page === 'notifications' ? 'active' : '' %>" href="/notifications"><i class="fas fa-bell"></i><span>Notifications</span></a>
                     <a class="<%= page === 'plans' ? 'active' : '' %>" href="/plans"><i class="fas fa-crown"></i><span>Plans & Payment</span></a>
@@ -2077,9 +2205,9 @@
 
         <!-- ===== LOGIN PAGE ===== -->
         <% if (page === 'login') { %>
-            <div id="loginModal" class="modal-overlay active" style="display:flex;">
+            <div id="loginModal" class="modal-overlay active login-only-overlay" style="display:flex;">
                 <div class="modal-content login-modal-card">
-                    <div style="display:flex;justify-content:flex-end;margin-bottom:-.5rem;"><a href="/" class="modal-close" aria-label="Close login"><i class="fas fa-times"></i></a></div>
+                    <div class="login-modal-top"><span class="login-security"><i class="fas fa-lock"></i> Secure Login</span><a href="/" class="login-close-btn" aria-label="Close login"><i class="fas fa-times"></i><span>Close</span></a></div>
                 <div style="text-align: center; margin-bottom: 1.5rem;">
                     <div class="login-modal-brand"><span class="brand-icon telegram" aria-label="Telegram"><svg viewBox="0 0 24 24" role="img" aria-hidden="true"><path fill="#fff" d="M21.944 2.506 2.91 9.846c-1.299.521-1.292 1.245-.238 1.568l4.886 1.525 1.869 5.864c.227.627.115.876.773.876.508 0 .732-.232 1.016-.508l2.44-2.373 5.076 3.75c.936.516 1.61.249 1.843-.869L23.91 4.084c.342-1.371-.523-1.992-1.966-1.578ZM8.323 12.588l9.91-6.252c.494-.299.947-.138.575.192l-8.16 7.368-.318 3.405-2.007-4.713Z"/></svg></span><span style="font-size:1.15rem;font-weight:800;">Secure Login</span></div>
                     <h2 style="font-size: 1.8rem; font-weight: 800; background: linear-gradient(135deg, var(--primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-top: 0.3rem;">
@@ -2287,7 +2415,7 @@
                         <a href="/"><i class="fas fa-house"></i><span>Home</span></a>
                         <a class="active" href="/dashboard"><i class="fas fa-chart-pie"></i><span>Overview</span></a>
                         <button type="button" onclick="openCreateLinkModal()"><i class="fas fa-plus"></i><span>Create Link</span></button>
-                        <a href="/shorten-page"><i class="fas fa-link"></i><span>My Short Links</span></a>
+                        <a href="/my-links"><i class="fas fa-link"></i><span>My Short Links</span></a>
                         <a href="/api-access"><i class="fas fa-code"></i><span>API Access</span><span class="side-tag">PRO</span></a>
                         <a href="/notifications"><i class="fas fa-bell"></i><span>Notifications</span></a>
                         <a href="/plans"><i class="fas fa-crown"></i><span>Plans</span></a>
@@ -2711,6 +2839,40 @@
 
         <% } %>
 
+
+        <!-- ===== MY SHORT LINKS PAGE ===== -->
+        <% if (page === 'my-links') { %>
+            <div class="my-links-header">
+                <div><div class="dashboard-kicker">YOUR LIBRARY</div><h1><i class="fas fa-link"></i> My Short Links</h1><p>Only links created by your account are shown here.</p></div>
+                <a href="/shorten-page" class="btn btn-primary"><i class="fas fa-plus"></i> Create New Link</a>
+            </div>
+            <div class="my-links-summary">
+                <div class="mini-summary-card"><span>Total Links</span><strong><%= (links||[]).length %></strong></div>
+                <div class="mini-summary-card"><span>Total Clicks</span><strong><%= (links||[]).reduce(function(sum,l){return sum+Number(l.clicks||0)},0) %></strong></div>
+                <div class="mini-summary-card"><span>Active</span><strong><%= (links||[]).filter(function(l){return l.isActive && !l.isExpired}).length %></strong></div>
+            </div>
+            <div class="glass-card my-links-panel">
+                <div class="my-links-panel-title"><h2>Your Links</h2><span><%= (links||[]).length %> saved</span></div>
+                <% if (links && links.length) { %>
+                    <% links.forEach(function(link){ %>
+                        <div class="link-card my-link-owned-card">
+                            <div class="link-top">
+                                <div style="min-width:0;flex:1;"><a class="link-url" href="<%= link.shortUrl %>" target="_blank" rel="noopener noreferrer"><%= link.shortUrl %></a><div class="link-original"><%= link.originalUrl %></div></div>
+                                <div class="my-link-quick-actions"><button class="btn btn-secondary btn-sm copy-link-btn" data-url="<%= link.shortUrl %>"><i class="fas fa-copy"></i> Copy</button><button class="btn btn-secondary btn-sm" onclick="generateQRForDomain('<%= link.shortCode %>','<%= link.selectedDomain %>')"><i class="fas fa-qrcode"></i> QR</button></div>
+                            </div>
+                            <div class="link-meta"><span><i class="fas fa-arrow-pointer"></i> <%= link.clicks || 0 %> clicks</span><span><i class="fas fa-globe"></i> <%= link.selectedDomain %></span><% if(link.passwordEnabled){ %><span><i class="fas fa-lock"></i> Password</span><% } %><span class="badge <%= link.isActive ? 'badge-active' : 'badge-inactive' %>"><%= link.isActive ? 'Active' : 'Disabled' %></span></div>
+                            <div class="link-actions">
+                                <form action="/links/<%= link.id %>/update" method="POST" class="edit-form"><input type="url" name="originalUrl" value="<%= link.originalUrl %>" required><button class="btn btn-sm btn-secondary" type="submit"><i class="fas fa-pen"></i> Update</button></form>
+                                <div class="btn-group"><form action="/links/<%= link.id %>/toggle" method="POST"><button class="btn btn-sm btn-secondary" type="submit"><%= link.isActive ? 'Disable' : 'Enable' %></button></form><form action="/links/<%= link.id %>/delete" method="POST" onsubmit="return confirm('Delete this short link?')"><button class="btn btn-sm btn-danger" type="submit"><i class="fas fa-trash"></i> Delete</button></form></div>
+                            </div>
+                        </div>
+                    <% }); %>
+                <% } else { %>
+                    <div class="empty-links-state"><i class="fas fa-link"></i><h3>No short links yet</h3><p>Create your first link and it will appear here.</p><a href="/shorten-page" class="btn btn-primary">Create First Link</a></div>
+                <% } %>
+            </div>
+        <% } %>
+
         <!-- ===== SHORT LINK PAGE ===== -->
         <% if (page === 'shorten') { %>
             <div class="fade-in">
@@ -2885,17 +3047,15 @@
                 <div class="payment-method-cards">
                     <div class="payment-method-card bkash">
                         <div class="payment-method-title">bKash</div>
-                        <strong><%= bkashNumber %></strong>
-                        <span>⚠️ Send Money only</span>
+                        <div class="copy-payment-row"><strong id="bkashCopyValue"><%= bkashNumber %></strong><button type="button" class="copy-payment-btn" onclick="copyPaymentValue('bkashCopyValue','bKash number copied')"><i class="fas fa-copy"></i> Copy</button></div><span>⚠️ Send Money only</span>
                     </div>
                     <div class="payment-method-card nagad">
                         <div class="payment-method-title">Nagad</div>
-                        <strong><%= nagadNumber %></strong>
-                        <span>⚠️ Send Money only</span>
+                        <div class="copy-payment-row"><strong id="nagadCopyValue"><%= nagadNumber %></strong><button type="button" class="copy-payment-btn" onclick="copyPaymentValue('nagadCopyValue','Nagad number copied')"><i class="fas fa-copy"></i> Copy</button></div><span>⚠️ Send Money only</span>
                     </div>
                     <div class="payment-method-card binance">
                         <div class="payment-method-title">Binance</div>
-                        <strong>Binance ID: <%= typeof binanceId !== 'undefined' ? binanceId : 'Set in Railway Variables' %></strong>
+                        <div class="copy-payment-row"><strong>Binance ID: <span id="binanceCopyValue"><%= typeof binanceId !== 'undefined' ? binanceId : 'Set in Railway Variables' %></span></strong><button type="button" class="copy-payment-btn" onclick="copyPaymentValue('binanceCopyValue','Binance ID copied')"><i class="fas fa-copy"></i> Copy</button></div>
                         <span>USD plan amount: 1 Month ≈ $<%= Number(plan1Usd).toFixed(2) %> • 3 Months ≈ $<%= Number(plan3Usd).toFixed(2) %><br>Submit Order ID + payment screenshot</span>
                     </div>
                 </div>
@@ -3089,7 +3249,7 @@
             </div>
         <% } %>
 
-        <% if (typeof user !== 'undefined' && user && page !== 'admin' && page !== 'admin-login') { %>
+        <% if (typeof user !== 'undefined' && user && page !== 'admin' && page !== 'admin-login' && page !== 'login') { %>
             </main>
         <% } %>
     </div>
@@ -3683,6 +3843,16 @@
             method.addEventListener('change', syncPaymentMethod);
             syncPaymentMethod();
         })();
+
+
+        function copyPaymentValue(elementId, successMessage) {
+            var el=document.getElementById(elementId); if(!el)return;
+            var value=(el.textContent||'').trim();
+            function done(){ if(typeof showToast==='function') showToast(successMessage||'Copied','success'); }
+            if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(value).then(done).catch(function(){fallbackCopy(value,done);});}
+            else fallbackCopy(value,done);
+        }
+        function fallbackCopy(value,done){var ta=document.createElement('textarea');ta.value=value;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done();}catch(e){}document.body.removeChild(ta);}
 
         // ===== TOAST =====
         function showToast(message, type, duration) {
