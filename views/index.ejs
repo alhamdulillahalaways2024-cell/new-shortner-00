@@ -600,6 +600,21 @@
         .payment-box{max-width:760px;margin:1.5rem auto}
         .tiny-note{font-size:.78rem;color:var(--text-muted)}
 
+
+        /* ===== V6.7 PREMIUM MOTION / RESPONSIVE POLISH ===== */
+        .announcement-ticker{position:relative;z-index:998;overflow:hidden;background:linear-gradient(90deg,rgba(108,99,255,.16),rgba(0,212,255,.12),rgba(255,101,132,.12));border-bottom:1px solid rgba(255,255,255,.10);box-shadow:0 8px 30px rgba(0,0,0,.18)}
+        .announcement-track{display:flex;width:max-content;min-width:100%;animation:tickerMove 24s linear infinite;will-change:transform}
+        .announcement-item{white-space:nowrap;padding:.72rem 3rem;font-size:.9rem;font-weight:700;letter-spacing:.2px;color:#fff}
+        .announcement-ticker:hover .announcement-track{animation-play-state:paused}
+        @keyframes tickerMove{from{transform:translateX(100vw)}to{transform:translateX(-100%)}}
+        .analytics-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1rem;align-items:start;margin-bottom:2rem}
+        .analytics-mini-card{min-width:0;overflow:hidden}
+        .analytics-mini-card .stat-item span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+        .btn,.feature-card,.stat-card,.glass-card,.link-card{transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease,background .25s ease}
+        .btn{position:relative;overflow:hidden}.btn::after{content:'';position:absolute;inset:0;transform:translateX(-120%);background:linear-gradient(110deg,transparent 20%,rgba(255,255,255,.18) 50%,transparent 80%);transition:transform .55s ease;pointer-events:none}.btn:hover::after{transform:translateX(120%)}.btn:active{transform:scale(.97)}
+        .glass-card:hover,.link-card:hover,.feature-card:hover{box-shadow:0 14px 48px rgba(0,0,0,.32)}.stat-card:hover{transform:translateY(-5px) scale(1.015)}
+        @media(max-width:900px){.analytics-pair{grid-template-columns:1fr}}
+
         @media (max-width: 992px) {
             .brand-center h1 { font-size: 2.8rem; }
             .analytics-grid { grid-template-columns: 1fr; }
@@ -644,6 +659,9 @@
     </style>
 </head>
 <body>
+    <% if (typeof announcement !== 'undefined' && announcement && announcement.message) { %>
+      <div class="announcement-ticker" role="status" aria-live="polite"><div class="announcement-track"><div class="announcement-item">📢 <%= announcement.message %> &nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp; 📢 <%= announcement.message %></div></div></div>
+    <% } %>
 
     <div id="toastContainer" class="toast-container"></div>
 
@@ -1001,14 +1019,14 @@
                     </div>
                 </div>
 
-                <div class="analytics-grid" style="margin-bottom:2rem;">
-                    <div class="glass-card">
+                <div class="analytics-pair">
+                    <div class="glass-card analytics-mini-card">
                         <h3 style="margin-bottom:.8rem;">🔗 Top Referrers</h3>
                         <% if (typeof topReferrers !== 'undefined' && topReferrers.length) { %>
                             <% topReferrers.forEach(function(r){ %><div class="stat-item" style="display:flex;justify-content:space-between;padding:.55rem 0;border-bottom:1px solid var(--glass-border);"><span style="max-width:75%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><%= r.name %></span><strong><%= r.count %></strong></div><% }); %>
                         <% } else { %><p style="color:var(--text-muted);">No referrer data yet.</p><% } %>
                     </div>
-                    <div class="glass-card">
+                    <div class="glass-card analytics-mini-card">
                         <h3 style="margin-bottom:.8rem;">🌐 Browsers</h3>
                         <% if (typeof browserStats !== 'undefined' && browserStats.length) { %>
                             <% browserStats.forEach(function(r){ %><div class="stat-item" style="display:flex;justify-content:space-between;padding:.55rem 0;border-bottom:1px solid var(--glass-border);"><span><%= r.name %></span><strong><%= r.count %></strong></div><% }); %>
@@ -1254,9 +1272,14 @@
                         <div class="form-group"><label>Destination URL</label><input type="url" class="form-control" name="originalUrl" placeholder="https://example.com/your-long-link" required></div>
                         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;">
                             <div class="form-group"><label>Short Domain</label><select class="form-control" name="domain" required>
-                                <option value="<%= typeof baseDomain !== 'undefined' ? baseDomain : 'thispersonisbrandshortner.com' %>">⭐ <%= typeof baseDomain !== 'undefined' ? baseDomain : 'thispersonisbrandshortner.com' %> (Base)</option>
-                                <% if (typeof customDomains !== 'undefined' && customDomains && customDomains.length) { %><% customDomains.forEach(function(domain) { %><option value="<%= domain %>">🌐 <%= domain %></option><% }); %><% } %>
-                            </select></div>
+                                <% if (typeof domainChoices !== 'undefined' && domainChoices && domainChoices.length) { %>
+                                  <% domainChoices.forEach(function(d){ %>
+                                    <option value="<%= d.domain %>" <%= d.selectable ? '' : 'disabled' %>><%= d.domain %><%= d.selectable ? '' : (d.maintenance ? ' — Maintenance • Coming Soon' : ' — Coming Soon') %></option>
+                                  <% }); %>
+                                <% } else { %>
+                                  <% (availableDomains || []).forEach(function(domain){ %><option value="<%= domain %>"><%= domain %></option><% }); %>
+                                <% } %>
+                              </select></div>
                             <div class="form-group"><label>Custom Path (optional)</label><input type="text" class="form-control" name="customSlug" maxlength="48" pattern="[A-Za-z0-9_-]+" placeholder="my-link"></div>
                             <div class="form-group"><label>Expiry</label><select class="form-control" name="expiresIn"><option value="">Never</option><option value="1">1 Day</option><option value="7">7 Days</option><option value="30">30 Days</option><option value="90">90 Days</option></select></div>
                             <div class="form-group"><label>Password (Premium, optional)</label><input type="password" class="form-control" name="linkPassword" minlength="4" maxlength="100" placeholder="Protect this short link"></div>
@@ -1468,6 +1491,20 @@
                 </tbody></table></div>
             </div>
 
+
+
+            <div class="glass-card" style="margin-bottom:1.5rem;">
+                <h2>📢 Site Announcement / News Ticker</h2>
+                <p style="color:var(--text-muted);margin:.4rem 0 1rem;">Publish one active scrolling announcement across public, login and user pages. It remains visible until you turn it off.</p>
+                <form method="POST" action="/admin/announcement" style="display:flex;gap:.6rem;flex-wrap:wrap;">
+                    <input class="form-control" name="message" maxlength="500" required placeholder="Example: New custom domain launching tonight" style="flex:1;min-width:260px;">
+                    <button class="btn btn-primary">Publish Announcement</button>
+                </form>
+                <div class="admin-table-wrap" style="margin-top:1rem;"><table class="admin-table"><thead><tr><th>Message</th><th>Status</th><th>Updated</th><th>Actions</th></tr></thead><tbody>
+                <% (adminAnnouncements||[]).forEach(function(a){ %><tr><td style="max-width:420px;white-space:normal;"><%= a.message %></td><td><%= a.is_active?'Active':'Off' %></td><td><%= new Date(a.updated_at).toLocaleString() %></td><td><div class="admin-actions"><form method="POST" action="/admin/announcement/<%= a.id %>/toggle"><button class="btn btn-sm <%= a.is_active?'btn-warning':'btn-secondary' %>"><%= a.is_active?'Turn Off':'Activate' %></button></form><form method="POST" action="/admin/announcement/<%= a.id %>/delete" onsubmit="return confirm('Delete this announcement?')"><button class="btn btn-sm btn-danger">Delete</button></form></div></td></tr><% }); %>
+                <% if(!(adminAnnouncements||[]).length){ %><tr><td colspan="4">No announcements yet.</td></tr><% } %>
+                </tbody></table></div>
+            </div>
 
             <div class="glass-card" style="margin-bottom:1.5rem;">
                 <div style="display:flex;justify-content:space-between;gap:1rem;align-items:center;flex-wrap:wrap;">
