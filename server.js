@@ -22,8 +22,11 @@ const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || '');
 const FREE_LINK_LIMIT = Math.max(1, Number(process.env.FREE_LINK_LIMIT || 5));
 const PLAN_1_PRICE = Math.max(1, Number(process.env.PLAN_1_PRICE || 100));
 const PLAN_3_PRICE = Math.max(1, Number(process.env.PLAN_3_PRICE || 250));
+const PLAN_1_USD = Number(process.env.PLAN_1_USD || 0.81);
+const PLAN_3_USD = Number(process.env.PLAN_3_USD || 2.02);
 const BKASH_NUMBER = String(process.env.BKASH_NUMBER || 'Set in Railway Variables');
 const NAGAD_NUMBER = String(process.env.NAGAD_NUMBER || 'Set in Railway Variables');
+const BINANCE_ID = String(process.env.BINANCE_ID || 'Set in Railway Variables');
 const API_RATE_LIMIT = Math.max(10, Number(process.env.API_RATE_LIMIT || 120));
 const AUTO_BACKUP_HOURS = Math.max(1, Number(process.env.AUTO_BACKUP_HOURS || 24));
 const BLOCKED_DOMAINS = String(process.env.BLOCKED_DOMAINS || '')
@@ -688,9 +691,27 @@ app.get('/dashboard',authMiddleware,async(req,res)=>{
     const monthAgo=new Date(today);monthAgo.setDate(monthAgo.getDate()-30);
     const yearStart=new Date(today.getFullYear(),0,1);
     const countryMap={},deviceMap={},referrerMap={},browserMap={},uniqueIps=new Set(),weekData=[0,0,0,0,0,0,0];
+
+    // V7.6 graph series: exact last 7 calendar days. Existing weekData remains unchanged.
+    const chartDays=[];
+    for(let i=6;i>=0;i--){
+      const cd=new Date(today);
+      cd.setDate(cd.getDate()-i);
+      const key=`${cd.getFullYear()}-${String(cd.getMonth()+1).padStart(2,'0')}-${String(cd.getDate()).padStart(2,'0')}`;
+      chartDays.push({
+        key,
+        date: cd.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}),
+        day: cd.toLocaleDateString('en-US',{weekday:'long'}),
+        clicks:0
+      });
+    }
+    const chartDayMap=new Map(chartDays.map((d,i)=>[d.key,i]));
+
     for(const click of clicks){
       if(click.isBot){botClicks++;continue;} totalClicks++; const d=new Date(click.createdAt);
       if(click.ipAddress) uniqueIps.add(click.ipAddress);
+      const clickKey=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      if(chartDayMap.has(clickKey)) chartDays[chartDayMap.get(clickKey)].clicks++;
       if(d>=today)todayClicks++; else if(d>=yesterday && d<today)yesterdayClicks++;
       if(d>=weekAgo){weekClicks++;const di=d.getDay(),ai=di===0?6:di-1;weekData[ai]++;}
       if(d>=monthAgo)monthClicks++; if(d>=yearStart)yearClicks++;
@@ -707,7 +728,7 @@ app.get('/dashboard',authMiddleware,async(req,res)=>{
     const activeUsers=await getActiveOnlineUsers();
     const domainChoices=await getDomainChoices();
     const dashboardDomains=domainChoices.filter(d=>d.selectable).map(d=>d.domain);
-    res.render('index',{page:'dashboard',user:freshUser,links,totalClicks,todayClicks,yesterdayClicks,weekClicks,monthClicks,yearClicks,uniqueClicks,topReferrers,browserStats,botClicks,realClicks,clickRate,onlineUsers:activeUsers.length,countryStats,deviceStats,weekData,countries,onlineUserList:activeUsers.map(u=>({name:u.displayName||u.username||'User'})),freeLinkLimit:FREE_LINK_LIMIT,linkUsage,linksRemaining,error:req.query.error||null,success:req.query.success||null,info:null,shortUrl:null,customDomains:dashboardDomains.filter(d=>d!==normalizeHost(BASE_HOST)),availableDomains:dashboardDomains,domainChoices,baseDomain:BASE_HOST,baseUrl:getBaseUrl(req)});
+    res.render('index',{page:'dashboard',user:freshUser,links,totalClicks,todayClicks,yesterdayClicks,weekClicks,monthClicks,yearClicks,uniqueClicks,topReferrers,browserStats,botClicks,realClicks,clickRate,onlineUsers:activeUsers.length,countryStats,deviceStats,weekData,chartDays,countries,onlineUserList:activeUsers.map(u=>({name:u.displayName||u.username||'User'})),freeLinkLimit:FREE_LINK_LIMIT,linkUsage,linksRemaining,error:req.query.error||null,success:req.query.success||null,info:null,shortUrl:null,customDomains:dashboardDomains.filter(d=>d!==normalizeHost(BASE_HOST)),availableDomains:dashboardDomains,domainChoices,baseDomain:BASE_HOST,baseUrl:getBaseUrl(req)});
   }catch(e){ console.error('Dashboard error:',e); res.redirect('/?error='+encodeURIComponent('Dashboard database error')); }
 });
 
@@ -911,7 +932,7 @@ app.get('/plans', authMiddleware, async (req,res)=>{
       page:'plans',user,onlineUsers:active.length,onlineUserList:active.map(u=>({name:u.displayName||u.username||'User'})),
       countries,error:req.query.error||null,success:req.query.success||null,info:null,shortUrl:null,
       customDomains:CUSTOM_DOMAINS,availableDomains:AVAILABLE_DOMAINS,baseDomain:BASE_HOST,baseUrl:BASE_URL,
-      freeLinkLimit:FREE_LINK_LIMIT,plan1Price:PLAN_1_PRICE,plan3Price:PLAN_3_PRICE,bkashNumber:BKASH_NUMBER,nagadNumber:NAGAD_NUMBER,
+      freeLinkLimit:FREE_LINK_LIMIT,plan1Price:PLAN_1_PRICE,plan3Price:PLAN_3_PRICE,plan1Usd:PLAN_1_USD,plan3Usd:PLAN_3_USD,bkashNumber:BKASH_NUMBER,nagadNumber:NAGAD_NUMBER,binanceId:BINANCE_ID,
       paymentHistory:payments.rows
     });
   } catch(e){ console.error('Plans page error:',e); res.redirect('/dashboard?error='+encodeURIComponent('Could not load plans')); }
@@ -922,16 +943,25 @@ app.post('/payments', authMiddleware, paymentUpload.single('screenshot'), async 
     const months = Number(req.body.planMonths);
     if (![1,3].includes(months)) return res.redirect('/plans?error='+encodeURIComponent('Invalid plan'));
     const method = String(req.body.method||'').toLowerCase();
-    if (!['bkash','nagad'].includes(method)) return res.redirect('/plans?error='+encodeURIComponent('Choose bKash or Nagad'));
-    const txn = String(req.body.transactionId||'').trim();
-    if (txn.length < 4) return res.redirect('/plans?error='+encodeURIComponent('Enter a valid transaction ID'));
+    if (!['bkash','nagad','binance'].includes(method)) return res.redirect('/plans?error='+encodeURIComponent('Choose bKash, Nagad or Binance'));
+
+    // bKash/Nagad use Transaction ID. Binance uses Order ID in the same secure reference field.
+    const txn = String(req.body.transactionId||req.body.orderId||'').trim();
+    const refName = method === 'binance' ? 'Binance Order ID' : 'transaction ID';
+    if (txn.length < 4) return res.redirect('/plans?error='+encodeURIComponent('Enter a valid '+refName));
     if (!req.file) return res.redirect('/plans?error='+encodeURIComponent('Upload payment screenshot'));
+
     const amount = expectedPlanAmount(months);
     await pool.query(`INSERT INTO payments(user_id,plan_months,amount,method,transaction_id,screenshot,screenshot_mime)
       VALUES($1,$2,$3,$4,$5,$6,$7)`,[req.user.id,months,amount,method,txn,req.file.buffer,req.file.mimetype]);
+
+    await notifyUser(req.user.id,'Payment submitted',
+      method==='binance' ? 'Your Binance payment proof and Order ID are pending admin review.' : 'Your Send Money payment is pending admin review.',
+      'info');
+
     res.redirect('/plans?success='+encodeURIComponent('Payment submitted. Admin will review it.'));
   } catch(e){
-    const msg = e.code === '23505' ? 'This transaction ID was already submitted.' : ('Payment submission failed: '+e.message);
+    const msg = e.code === '23505' ? 'This transaction/order ID was already submitted.' : ('Payment submission failed: '+e.message);
     res.redirect('/plans?error='+encodeURIComponent(msg));
   }
 });
@@ -971,7 +1001,7 @@ app.get('/admin', adminMiddleware, async (req,res)=>{
       error:req.query.error||null,success:req.query.success||null,info:null,shortUrl:null,customDomains:CUSTOM_DOMAINS,availableDomains:AVAILABLE_DOMAINS,baseDomain:BASE_HOST,baseUrl:BASE_URL,
       adminUsers:users,adminLinks:linksR.rows,adminPayments:payR.rows,adminAudit:auditR.rows,adminDomains:domainsR.rows,adminBackups:backupsR.rows,adminAnnouncements:announcementsR.rows,
       adminStats:{totalUsers:users.length,online:active.length,totalLinks:linksR.rows.length,totalClicks:Number(totalClicksR.rows[0].count),botClicks:Number(botClicksR.rows[0].count),pendingPayments:payR.rows.filter(p=>p.status==='pending').length},
-      freeLinkLimit:FREE_LINK_LIMIT,plan1Price:PLAN_1_PRICE,plan3Price:PLAN_3_PRICE,bkashNumber:BKASH_NUMBER,nagadNumber:NAGAD_NUMBER
+      freeLinkLimit:FREE_LINK_LIMIT,plan1Price:PLAN_1_PRICE,plan3Price:PLAN_3_PRICE,plan1Usd:PLAN_1_USD,plan3Usd:PLAN_3_USD,bkashNumber:BKASH_NUMBER,nagadNumber:NAGAD_NUMBER,binanceId:BINANCE_ID
     });
   }catch(e){console.error('Admin page error:',e);res.redirect('/admin/login?error='+encodeURIComponent('Admin page database error'));}
 });
