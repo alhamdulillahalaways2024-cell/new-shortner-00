@@ -9,12 +9,36 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 const fs = require('fs');
 const QRCode = require('qrcode');
+const multer = require('multer');
+const crypto = require('crypto');
 
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const SESSION_SECRET = process.env.SESSION_SECRET || 'change-this-session-secret';
+const ADMIN_EMAIL = String(process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || '');
+const FREE_LINK_LIMIT = Math.max(1, Number(process.env.FREE_LINK_LIMIT || 5));
+const PLAN_1_PRICE = Math.max(1, Number(process.env.PLAN_1_PRICE || 100));
+const PLAN_3_PRICE = Math.max(1, Number(process.env.PLAN_3_PRICE || 250));
+const BKASH_NUMBER = String(process.env.BKASH_NUMBER || 'Set in Railway Variables');
+const NAGAD_NUMBER = String(process.env.NAGAD_NUMBER || 'Set in Railway Variables');
+const API_RATE_LIMIT = Math.max(10, Number(process.env.API_RATE_LIMIT || 120));
+const AUTO_BACKUP_HOURS = Math.max(1, Number(process.env.AUTO_BACKUP_HOURS || 24));
+const BLOCKED_DOMAINS = String(process.env.BLOCKED_DOMAINS || '')
+  .split(',').map(v => v.trim().toLowerCase()).filter(Boolean);
+
+const paymentUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!/^image\/(png|jpe?g|webp)$/i.test(file.mimetype || '')) {
+      return cb(new Error('Payment screenshot must be PNG, JPG or WEBP'));
+    }
+    cb(null, true);
+  }
+});
 
 app.set('trust proxy', 1);
 
@@ -50,6 +74,13 @@ const limiter = rateLimit({
   legacyHeaders: false
 });
 app.use('/api/', limiter);
+const apiV1Limiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: API_RATE_LIMIT,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+app.use('/api/v1/', apiV1Limiter);
 
 // ===== POSTGRESQL: APP DATA + SESSIONS =====
 const dbUrl = (process.env.DATABASE_URL || '').trim();
@@ -154,6 +185,77 @@ async function initDatabase() {
       last_seen TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_type TEXT NOT NULL DEFAULT 'free';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS premium_until TIMESTAMPTZ;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS blocked_reason TEXT NOT NULL DEFAULT '';
+
+    CREATE TABLE IF NOT EXISTS payments (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      plan_months INTEGER NOT NULL CHECK (plan_months IN (1,3)),
+      amount INTEGER NOT NULL,
+      method TEXT NOT NULL,
+      transaction_id TEXT NOT NULL UNIQUE,
+      screenshot BYTEA,
+      screenshot_mime TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'pending',
+      admin_note TEXT NOT NULL DEFAULT '',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      reviewed_at TIMESTAMPTZ
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments(user_id);
+    CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
+
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS api_key_hash TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS api_key_prefix TEXT NOT NULL DEFAULT '';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS api_key_created_at TIMESTAMPTZ;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS api_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+
+    ALTER TABLE links ADD COLUMN IF NOT EXISTS password_hash TEXT;
+    ALTER TABLE links ADD COLUMN IF NOT EXISTS password_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+
+    CREATE TABLE IF NOT EXISTS notifications (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT 'info',
+      is_read BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS admin_audit_logs (
+      id BIGSERIAL PRIMARY KEY,
+      admin_email TEXT NOT NULL DEFAULT '',
+      action TEXT NOT NULL,
+      target_type TEXT NOT NULL DEFAULT '',
+      target_id TEXT NOT NULL DEFAULT '',
+      details TEXT NOT NULL DEFAULT '',
+      ip_address TEXT NOT NULL DEFAULT '',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS domain_settings (
+      domain TEXT PRIMARY KEY,
+      enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      maintenance BOOLEAN NOT NULL DEFAULT FALSE,
+      last_health TEXT NOT NULL DEFAULT 'unknown',
+      last_checked_at TIMESTAMPTZ
+    );
+
+    CREATE TABLE IF NOT EXISTS app_backups (
+      id BIGSERIAL PRIMARY KEY,
+      backup_data JSONB NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      created_by TEXT NOT NULL DEFAULT 'automatic'
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_notifications_user_created ON notifications(user_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON notifications(user_id, is_read);
+    CREATE INDEX IF NOT EXISTS idx_audit_created ON admin_audit_logs(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_backups_created ON app_backups(created_at DESC);
+
     CREATE INDEX IF NOT EXISTS idx_links_user_id ON links(user_id);
     CREATE INDEX IF NOT EXISTS idx_links_domain_code ON links(selected_domain, short_code);
     CREATE INDEX IF NOT EXISTS idx_clicks_user_id ON clicks(user_id);
@@ -161,7 +263,11 @@ async function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_clicks_created_at ON clicks(created_at);
     CREATE INDEX IF NOT EXISTS idx_online_last_seen ON online_users(last_seen);
   `);
-  console.log('✅ Full app database tables ready: users, links, clicks, online_users');
+  for (const domain of AVAILABLE_DOMAINS) {
+    await pool.query(`INSERT INTO domain_settings(domain,enabled,maintenance)
+      VALUES($1,TRUE,FALSE) ON CONFLICT(domain) DO NOTHING`, [normalizeHost(domain)]);
+  }
+  console.log('✅ Full app database tables ready: users, links, clicks, online_users, payments, api, notifications, audit, domains, backups');
 }
 
 function toIso(v) { return v ? new Date(v).toISOString() : null; }
@@ -172,7 +278,10 @@ function mapUser(r) {
     firstName: r.first_name, lastName: r.last_name, displayName: r.display_name,
     email: r.email, profilePhoto: r.profile_photo, timezone: r.timezone,
     accountStatus: r.account_status, createdAt: toIso(r.created_at), lastLogin: toIso(r.last_login),
-    totalLinks: Number(r.total_links || 0), totalClicks: Number(r.total_clicks || 0), isAdmin: !!r.is_admin
+    totalLinks: Number(r.total_links || 0), totalClicks: Number(r.total_clicks || 0), isAdmin: !!r.is_admin,
+    planType: r.plan_type || 'free', premiumUntil: toIso(r.premium_until), blockedReason: r.blocked_reason || '',
+    isPremium: (r.plan_type === 'premium' && r.premium_until && new Date(r.premium_until) > new Date()),
+    apiEnabled: !!r.api_enabled, apiKeyPrefix: r.api_key_prefix || '', apiKeyCreatedAt: toIso(r.api_key_created_at)
   };
 }
 function mapLink(r) {
@@ -181,7 +290,8 @@ function mapLink(r) {
     id: Number(r.id), userId: Number(r.user_id), selectedDomain: r.selected_domain,
     originalUrl: r.original_url, shortCode: r.short_code, customSlug: r.custom_slug,
     title: r.title || '', clicks: Number(r.clicks || 0), isActive: !!r.is_active,
-    isExpired: !!r.is_expired, expiresAt: toIso(r.expires_at), createdAt: toIso(r.created_at), updatedAt: toIso(r.updated_at)
+    isExpired: !!r.is_expired, expiresAt: toIso(r.expires_at), createdAt: toIso(r.created_at), updatedAt: toIso(r.updated_at),
+    passwordEnabled: !!r.password_enabled
   };
 }
 function mapClick(r) {
@@ -298,6 +408,101 @@ function domainOrigin(domain){ const clean=normalizeHost(domain); return clean==
 function getBaseUrl(req){ const host=normalizeHost(req.get('host')); return AVAILABLE_DOMAINS.map(normalizeHost).includes(host)?domainOrigin(host):BASE_URL; }
 function buildShortUrl(link){ return `${domainOrigin(normalizeHost(link.selectedDomain||BASE_HOST))}/${link.shortCode}`; }
 function escapeHtml(v){ return String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+
+function sha256(v){ return crypto.createHash('sha256').update(String(v)).digest('hex'); }
+function makeApiKey(){ return 'tpib_live_' + crypto.randomBytes(24).toString('hex'); }
+function hashLinkPassword(password){
+  const salt=crypto.randomBytes(16).toString('hex');
+  const hash=crypto.scryptSync(String(password),salt,64).toString('hex');
+  return `${salt}:${hash}`;
+}
+function verifyLinkPassword(password,stored){
+  try{
+    const [salt,expected]=String(stored||'').split(':');
+    if(!salt||!expected)return false;
+    const actual=crypto.scryptSync(String(password),salt,64);
+    const exp=Buffer.from(expected,'hex');
+    return exp.length===actual.length && crypto.timingSafeEqual(exp,actual);
+  }catch(e){ return false; }
+}
+function isPrivateHostname(host){
+  const h=String(host||'').toLowerCase();
+  return h==='localhost'||h==='127.0.0.1'||h==='0.0.0.0'||h==='::1'||
+    /^10\./.test(h)||/^192\.168\./.test(h)||/^172\.(1[6-9]|2\d|3[0-1])\./.test(h)||
+    h.endsWith('.local')||h.endsWith('.internal');
+}
+function validateDestinationUrl(raw){
+  try{
+    const u=new URL(String(raw||''));
+    if(!['http:','https:'].includes(u.protocol)) return 'Only http:// or https:// links are allowed.';
+    const host=normalizeHost(u.hostname);
+    if(!host) return 'Invalid destination host.';
+    if(isPrivateHostname(host)) return 'Private/local network URLs are not allowed.';
+    if(AVAILABLE_DOMAINS.map(normalizeHost).includes(host)) return 'Shortener domains cannot be used as destination URLs.';
+    if(BLOCKED_DOMAINS.includes(host) || BLOCKED_DOMAINS.some(d=>host.endsWith('.'+d))) return 'This destination domain is blocked by the administrator.';
+    if(String(raw).length>4096) return 'Destination URL is too long.';
+    return null;
+  }catch(e){ return 'Invalid URL format.'; }
+}
+async function notifyUser(userId,title,message,type='info'){
+  await pool.query('INSERT INTO notifications(user_id,title,message,type) VALUES($1,$2,$3,$4)',
+    [userId,String(title).slice(0,160),String(message).slice(0,2000),String(type).slice(0,30)]);
+}
+async function auditAdmin(req,action,targetType='',targetId='',details=''){
+  try{
+    await pool.query(`INSERT INTO admin_audit_logs(admin_email,action,target_type,target_id,details,ip_address)
+      VALUES($1,$2,$3,$4,$5,$6)`,
+      [ADMIN_EMAIL,String(action),String(targetType),String(targetId),String(details).slice(0,4000),normalizeClientIp(req.ip||'')]);
+  }catch(e){ console.error('Audit log error:',e.message); }
+}
+async function getEnabledDomains(){
+  const q=await pool.query('SELECT domain FROM domain_settings WHERE enabled=TRUE AND maintenance=FALSE ORDER BY domain=$1 DESC, domain ASC',[normalizeHost(BASE_HOST)]);
+  const list=q.rows.map(r=>normalizeHost(r.domain)).filter(d=>AVAILABLE_DOMAINS.map(normalizeHost).includes(d));
+  return list.length ? list : [normalizeHost(BASE_HOST)];
+}
+async function isDomainEnabled(domain){
+  const d=normalizeHost(domain);
+  const q=await pool.query('SELECT enabled,maintenance FROM domain_settings WHERE domain=$1',[d]);
+  return q.rowCount ? (!!q.rows[0].enabled && !q.rows[0].maintenance) : d===normalizeHost(BASE_HOST);
+}
+async function authenticateApiKey(req,res,next){
+  try{
+    const raw=String(req.get('x-api-key')||req.get('authorization')||'').replace(/^Bearer\s+/i,'').trim();
+    if(!raw) return res.status(401).json({error:'API key required'});
+    const hash=sha256(raw);
+    const q=await pool.query('SELECT * FROM users WHERE api_key_hash=$1 AND api_enabled=TRUE LIMIT 1',[hash]);
+    if(!q.rowCount) return res.status(401).json({error:'Invalid or revoked API key'});
+    const user=mapUser(q.rows[0]);
+    if(user.accountStatus==='blocked') return res.status(403).json({error:'Account blocked'});
+    if(!user.isPremium) return res.status(403).json({error:'Premium plan required for API access'});
+    req.apiUser=user;
+    next();
+  }catch(e){ console.error('API auth error:',e); res.status(500).json({error:'API authentication error'}); }
+}
+async function createBackupSnapshot(createdBy='automatic'){
+  const [users,links,clicks,payments,domains,notifications]=await Promise.all([
+    pool.query(`SELECT id,telegram_id,username,first_name,last_name,display_name,email,timezone,account_status,created_at,last_login,total_links,total_clicks,is_admin,plan_type,premium_until,api_enabled,api_key_prefix FROM users ORDER BY id`),
+    pool.query('SELECT * FROM links ORDER BY id'),
+    pool.query('SELECT * FROM clicks ORDER BY id DESC LIMIT 100000'),
+    pool.query(`SELECT id,user_id,plan_months,amount,method,transaction_id,status,admin_note,created_at,reviewed_at FROM payments ORDER BY id`),
+    pool.query('SELECT * FROM domain_settings ORDER BY domain'),
+    pool.query('SELECT * FROM notifications ORDER BY id DESC LIMIT 10000')
+  ]);
+  const payload={version:'6.6',createdAt:new Date().toISOString(),users:users.rows,links:links.rows,clicks:clicks.rows,payments:payments.rows,domains:domains.rows,notifications:notifications.rows};
+  await pool.query('INSERT INTO app_backups(backup_data,created_by) VALUES($1::jsonb,$2)',[JSON.stringify(payload),createdBy]);
+  await pool.query(`DELETE FROM app_backups WHERE id NOT IN (SELECT id FROM app_backups ORDER BY created_at DESC LIMIT 7)`);
+  return payload;
+}
+async function maybeCreateAutomaticBackup(){
+  try{
+    const q=await pool.query("SELECT created_at FROM app_backups WHERE created_by='automatic' ORDER BY created_at DESC LIMIT 1");
+    const last=q.rowCount?new Date(q.rows[0].created_at).getTime():0;
+    if(!last || Date.now()-last >= AUTO_BACKUP_HOURS*3600000) {
+      await createBackupSnapshot('automatic');
+      console.log('✅ Automatic app snapshot created');
+    }
+  }catch(e){ console.error('Automatic backup error:',e.message); }
+}
 function renderSocialPreview(req,res,link){
   const shortUrl=buildShortUrl(link), host=normalizeHost(link.selectedDomain||req.get('host')||BASE_HOST), title=host, description=PREVIEW_DESCRIPTION;
   res.set('Cache-Control','public, max-age=300');
@@ -305,6 +510,25 @@ function renderSocialPreview(req,res,link){
 }
 
 async function getUserById(id){ const r=await pool.query('SELECT * FROM users WHERE id=$1',[id]); return mapUser(r.rows[0]); }
+async function getAdminState(req) {
+  if (req.session?.admin === true) return true;
+  if (req.session?.user?.id) {
+    const u = await getUserById(req.session.user.id);
+    return !!u?.isAdmin;
+  }
+  return false;
+}
+async function adminMiddleware(req,res,next){
+  try {
+    if (await getAdminState(req)) return next();
+    return res.redirect('/admin/login');
+  } catch(e) {
+    console.error('Admin auth error:', e);
+    return res.redirect('/admin/login?error=' + encodeURIComponent('Admin authentication failed'));
+  }
+}
+function expectedPlanAmount(months){ return Number(months) === 3 ? PLAN_3_PRICE : PLAN_1_PRICE; }
+
 async function getActiveOnlineUsers(){
   await pool.query("DELETE FROM online_users WHERE last_seen < NOW() - INTERVAL '5 minutes'");
   const r=await pool.query('SELECT * FROM online_users ORDER BY last_seen DESC'); return r.rows.map(mapOnline);
@@ -320,6 +544,10 @@ async function authMiddleware(req,res,next){
     if(req.session?.user?.id){
       const user=await getUserById(req.session.user.id);
       if(user){
+        if (user.accountStatus === 'blocked') {
+          delete req.session.user;
+          return req.session.save(() => res.redirect('/login?error=' + encodeURIComponent('Your account is blocked. Contact admin.')));
+        }
         req.user=user;
         return next();
       }
@@ -398,7 +626,13 @@ app.post('/login',async(req,res)=>{
       VALUES($1,$2,$3,$4,$5,$6,$7,NOW())
       ON CONFLICT(telegram_id) DO UPDATE SET username=EXCLUDED.username,first_name=EXCLUDED.first_name,last_name=EXCLUDED.last_name,display_name=EXCLUDED.display_name,email=CASE WHEN EXCLUDED.email<>'' THEN EXCLUDED.email ELSE users.email END,timezone=EXCLUDED.timezone,last_login=NOW()
       RETURNING *`,[String(telegramId),String(username),String(firstName),String(lastName||''),displayName,String(email||''),String(timezone||'Asia/Dhaka')]);
-    const user=mapUser(q.rows[0]); await markOnline(user);
+    let user=mapUser(q.rows[0]);
+    if (ADMIN_EMAIL && String(user.email || '').toLowerCase() === ADMIN_EMAIL && !user.isAdmin) {
+      const adminRow = await pool.query('UPDATE users SET is_admin=TRUE WHERE id=$1 RETURNING *',[user.id]);
+      user = mapUser(adminRow.rows[0]);
+    }
+    if (user.accountStatus === 'blocked') return res.redirect('/login?error=' + encodeURIComponent('Your account is blocked. Contact admin.'));
+    await markOnline(user);
     req.session.user={id:user.id,telegramId:user.telegramId,username:user.username,displayName:user.displayName,firstName:user.firstName,email:user.email,profilePhoto:user.profilePhoto,timezone:user.timezone,isAdmin:user.isAdmin};
     const requested=req.session.returnTo; const returnTo=requested&&requested!=='/login'&&requested.startsWith('/')?requested:'/dashboard'; delete req.session.returnTo;
     return req.session.save(err=>{ if(err){console.error('Session save error:',err);return res.redirect('/login?error='+encodeURIComponent('Could not save login session'));} res.redirect(returnTo); });
@@ -417,18 +651,31 @@ app.get('/dashboard',authMiddleware,async(req,res)=>{
     const links=linkR.rows.map(mapLink).map(l=>({...l,shortUrl:buildShortUrl(l)}));
     const clickR=await pool.query('SELECT * FROM clicks WHERE user_id=$1 ORDER BY created_at DESC',[req.user.id]);
     const clicks=clickR.rows.map(mapClick);
-    let totalClicks=0,todayClicks=0,weekClicks=0,monthClicks=0,botClicks=0;
-    const now=new Date(),today=new Date(now);today.setHours(0,0,0,0);const weekAgo=new Date(today);weekAgo.setDate(weekAgo.getDate()-7);const monthAgo=new Date(today);monthAgo.setDate(monthAgo.getDate()-30);
-    const countryMap={},deviceMap={},weekData=[0,0,0,0,0,0,0];
+    let totalClicks=0,todayClicks=0,yesterdayClicks=0,weekClicks=0,monthClicks=0,yearClicks=0,botClicks=0;
+    const now=new Date(),today=new Date(now);today.setHours(0,0,0,0);
+    const yesterday=new Date(today);yesterday.setDate(yesterday.getDate()-1);
+    const weekAgo=new Date(today);weekAgo.setDate(weekAgo.getDate()-7);
+    const monthAgo=new Date(today);monthAgo.setDate(monthAgo.getDate()-30);
+    const yearStart=new Date(today.getFullYear(),0,1);
+    const countryMap={},deviceMap={},referrerMap={},browserMap={},uniqueIps=new Set(),weekData=[0,0,0,0,0,0,0];
     for(const click of clicks){
-      if(click.isBot){botClicks++;continue;} totalClicks++; const d=new Date(click.createdAt); if(d>=today)todayClicks++; if(d>=weekAgo){weekClicks++;const di=d.getDay(),ai=di===0?6:di-1;weekData[ai]++;} if(d>=monthAgo)monthClicks++;
+      if(click.isBot){botClicks++;continue;} totalClicks++; const d=new Date(click.createdAt);
+      if(click.ipAddress) uniqueIps.add(click.ipAddress);
+      if(d>=today)todayClicks++; else if(d>=yesterday && d<today)yesterdayClicks++;
+      if(d>=weekAgo){weekClicks++;const di=d.getDay(),ai=di===0?6:di-1;weekData[ai]++;}
+      if(d>=monthAgo)monthClicks++; if(d>=yearStart)yearClicks++;
+      const rf=click.referrer||'Direct'; referrerMap[rf]=(referrerMap[rf]||0)+1;
+      const br=click.browser||'Unknown'; browserMap[br]=(browserMap[br]||0)+1;
       const cc=click.countryCode||'XX';countryMap[cc]=(countryMap[cc]||0)+1; const dk=(click.device||'Unknown')+'|'+(click.browser||'Unknown')+'|'+(click.os||'Unknown'); if(!deviceMap[dk])deviceMap[dk]={device:click.device,browser:click.browser,os:click.os,count:0};deviceMap[dk].count++;
     }
     const realClicks=totalClicks,clickRate=(totalClicks+botClicks)>0?Math.round(totalClicks/(totalClicks+botClicks)*100):0;
     const countryStats=Object.entries(countryMap).map(([countryCode,count])=>({countryCode,count})).sort((a,b)=>b.count-a.count).slice(0,15);
     const deviceStats=Object.values(deviceMap).sort((a,b)=>b.count-a.count).slice(0,20);
+    const topReferrers=Object.entries(referrerMap).map(([name,count])=>({name,count})).sort((a,b)=>b.count-a.count).slice(0,8);
+    const browserStats=Object.entries(browserMap).map(([name,count])=>({name,count})).sort((a,b)=>b.count-a.count).slice(0,8);
+    const uniqueClicks=uniqueIps.size;
     const activeUsers=await getActiveOnlineUsers();
-    res.render('index',{page:'dashboard',user:req.user,links,totalClicks,todayClicks,weekClicks,monthClicks,botClicks,realClicks,clickRate,onlineUsers:activeUsers.length,countryStats,deviceStats,weekData,countries,onlineUserList:activeUsers.map(u=>({name:u.displayName||u.username||'User'})),error:req.query.error||null,success:req.query.success||null,info:null,shortUrl:null,customDomains:CUSTOM_DOMAINS,availableDomains:AVAILABLE_DOMAINS,baseDomain:BASE_HOST,baseUrl:getBaseUrl(req)});
+    res.render('index',{page:'dashboard',user:req.user,links,totalClicks,todayClicks,yesterdayClicks,weekClicks,monthClicks,yearClicks,uniqueClicks,topReferrers,browserStats,botClicks,realClicks,clickRate,onlineUsers:activeUsers.length,countryStats,deviceStats,weekData,countries,onlineUserList:activeUsers.map(u=>({name:u.displayName||u.username||'User'})),error:req.query.error||null,success:req.query.success||null,info:null,shortUrl:null,customDomains:CUSTOM_DOMAINS,availableDomains:AVAILABLE_DOMAINS,baseDomain:BASE_HOST,baseUrl:getBaseUrl(req)});
   }catch(e){ console.error('Dashboard error:',e); res.redirect('/?error='+encodeURIComponent('Dashboard database error')); }
 });
 
@@ -437,27 +684,61 @@ app.get('/shorten-page',authMiddleware,async(req,res)=>{
   try {
     const r=await pool.query('SELECT * FROM links WHERE user_id=$1 ORDER BY created_at DESC LIMIT 12',[req.user.id]);
     const links=r.rows.map(mapLink).map(l=>({...l,shortUrl:buildShortUrl(l)})); const active=await getActiveOnlineUsers();
-    res.render('index',{page:'shorten',user:req.user,links,onlineUsers:active.length,onlineUserList:active.map(u=>({name:u.displayName||u.username||'User'})),countries,error:req.query.error||null,success:req.query.success||null,info:null,shortUrl:req.query.shortUrl||null,customDomains:CUSTOM_DOMAINS,availableDomains:AVAILABLE_DOMAINS,baseDomain:BASE_HOST,baseUrl:BASE_URL});
+    const enabledDomains=await getEnabledDomains(), enabledCustom=enabledDomains.filter(d=>d!==normalizeHost(BASE_HOST));
+    res.render('index',{page:'shorten',user:req.user,links,onlineUsers:active.length,onlineUserList:active.map(u=>({name:u.displayName||u.username||'User'})),countries,error:req.query.error||null,success:req.query.success||null,info:null,shortUrl:req.query.shortUrl||null,customDomains:enabledCustom,availableDomains:enabledDomains,baseDomain:BASE_HOST,baseUrl:BASE_URL});
   }catch(e){console.error('Shorten page error:',e);res.redirect('/dashboard?error='+encodeURIComponent('Could not open short link page'));}
 });
 
 app.post('/shorten',authMiddleware,async(req,res)=>{
   try {
-    const {originalUrl,customSlug,expiresIn,domain}=req.body; const requestedDomain=normalizeHost(domain||BASE_HOST); const selectedDomain=AVAILABLE_DOMAINS.map(normalizeHost).includes(requestedDomain)?requestedDomain:normalizeHost(BASE_HOST);
-    if(!originalUrl)return res.redirect('/shorten-page?error='+encodeURIComponent('Please enter a URL')); try{new URL(originalUrl);}catch(e){return res.redirect('/shorten-page?error='+encodeURIComponent('Invalid URL format'));}
+    const {originalUrl,customSlug,expiresIn,domain,linkPassword}=req.body;
+    const requestedDomain=normalizeHost(domain||BASE_HOST);
+    const enabledDomains=await getEnabledDomains();
+    const selectedDomain=enabledDomains.map(normalizeHost).includes(requestedDomain)?requestedDomain:normalizeHost(BASE_HOST);
+    if(!(await isDomainEnabled(selectedDomain))) return res.redirect('/shorten-page?error='+encodeURIComponent('Selected domain is currently disabled or under maintenance.'));
+    const freshUser = await getUserById(req.user.id);
+    if (!freshUser.isPremium) {
+      const countR = await pool.query('SELECT COUNT(*)::int AS count FROM links WHERE user_id=$1',[req.user.id]);
+      if (Number(countR.rows[0].count) >= FREE_LINK_LIMIT) {
+        return res.redirect('/plans?error=' + encodeURIComponent(`Free plan limit reached (${FREE_LINK_LIMIT} links). Upgrade to Premium for unlimited links.`));
+      }
+    }
+    if(!originalUrl)return res.redirect('/shorten-page?error='+encodeURIComponent('Please enter a URL'));
+    const unsafe=validateDestinationUrl(originalUrl);
+    if(unsafe)return res.redirect('/shorten-page?error='+encodeURIComponent(unsafe));
     let shortCode=String(customSlug||'').trim();
-    if(shortCode){ if(!/^[A-Za-z0-9_-]{2,80}$/.test(shortCode))return res.redirect('/shorten-page?error='+encodeURIComponent('Custom slug may use letters, numbers, - and _ only')); const ex=await pool.query('SELECT 1 FROM links WHERE selected_domain=$1 AND short_code=$2',[selectedDomain,shortCode]); if(ex.rowCount)return res.redirect('/shorten-page?error='+encodeURIComponent('Custom slug already taken on this domain')); }
-    else { for(let i=0;i<12;i++){const c=generateShortCode();const ex=await pool.query('SELECT 1 FROM links WHERE selected_domain=$1 AND short_code=$2',[selectedDomain,c]);if(!ex.rowCount){shortCode=c;break;}} if(!shortCode)throw new Error('Could not generate unique short code'); }
+    if(shortCode){
+      if(!/^[A-Za-z0-9_-]{2,80}$/.test(shortCode))return res.redirect('/shorten-page?error='+encodeURIComponent('Custom slug may use letters, numbers, - and _ only'));
+      const ex=await pool.query('SELECT 1 FROM links WHERE selected_domain=$1 AND short_code=$2',[selectedDomain,shortCode]);
+      if(ex.rowCount)return res.redirect('/shorten-page?error='+encodeURIComponent('Custom slug already taken on this domain'));
+    } else {
+      for(let i=0;i<12;i++){const c=generateShortCode();const ex=await pool.query('SELECT 1 FROM links WHERE selected_domain=$1 AND short_code=$2',[selectedDomain,c]);if(!ex.rowCount){shortCode=c;break;}}
+      if(!shortCode)throw new Error('Could not generate unique short code');
+    }
     let expiresAt=null;if(expiresIn){const days=parseInt(expiresIn);if(!isNaN(days))expiresAt=new Date(Date.now()+days*86400000);}
-    const q=await pool.query(`INSERT INTO links(user_id,selected_domain,original_url,short_code,custom_slug,expires_at) VALUES($1,$2,$3,$4,$5,$6) RETURNING *`,[req.user.id,selectedDomain,originalUrl,shortCode,customSlug||null,expiresAt]);
-    await pool.query('UPDATE users SET total_links=total_links+1 WHERE id=$1',[req.user.id]); const link=mapLink(q.rows[0]); const shortUrl=buildShortUrl(link);
+    const passwordEnabled=!!String(linkPassword||'').trim();
+    if(passwordEnabled && !freshUser.isPremium) return res.redirect('/plans?error='+encodeURIComponent('Password-protected links are a Premium feature.'));
+    const passwordHash=passwordEnabled?hashLinkPassword(linkPassword):null;
+    const q=await pool.query(`INSERT INTO links(user_id,selected_domain,original_url,short_code,custom_slug,expires_at,password_hash,password_enabled)
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      [req.user.id,selectedDomain,originalUrl,shortCode,customSlug||null,expiresAt,passwordHash,passwordEnabled]);
+    await pool.query('UPDATE users SET total_links=total_links+1 WHERE id=$1',[req.user.id]);
+    const link=mapLink(q.rows[0]); const shortUrl=buildShortUrl(link);
+    await notifyUser(req.user.id,'Short link created',`${shortUrl} was created successfully.`,'success');
     res.redirect('/shorten-page?success='+encodeURIComponent('Link created successfully!')+'&shortUrl='+encodeURIComponent(shortUrl));
   }catch(e){console.error('Shorten error:',e);res.redirect('/shorten-page?error='+encodeURIComponent('Failed to create short link: '+e.message));}
 });
 
 // ===== QR =====
 app.get('/qr/:code',async(req,res)=>{
-  try { const q=await pool.query('SELECT * FROM links WHERE short_code=$1 ORDER BY id DESC LIMIT 1',[req.params.code]);if(!q.rowCount)return res.status(404).json({error:'Link not found'});const link=mapLink(q.rows[0]),url=buildShortUrl(link);const qr=await QRCode.toDataURL(url,{errorCorrectionLevel:'H',margin:2,scale:8,color:{dark:'#000000',light:'#FFFFFF'}});res.json({qr,url}); }catch(e){console.error('QR error:',e);res.status(500).json({error:'Failed to generate QR code'});}
+  try {
+    const host=normalizeHost(req.query.domain||req.get('host')||BASE_HOST);
+    const q=await pool.query('SELECT * FROM links WHERE selected_domain=$1 AND short_code=$2 ORDER BY id DESC LIMIT 1',[host,req.params.code]);
+    if(!q.rowCount)return res.status(404).json({error:'Link not found'});
+    const link=mapLink(q.rows[0]),url=buildShortUrl(link);
+    const qr=await QRCode.toDataURL(url,{errorCorrectionLevel:'H',margin:2,scale:8,color:{dark:'#000000',light:'#FFFFFF'}});
+    res.json({qr,url});
+  }catch(e){console.error('QR error:',e);res.status(500).json({error:'Failed to generate QR code'});}
 });
 
 // ===== LINK MANAGEMENT =====
@@ -483,9 +764,305 @@ app.post('/api/update-timezone',authMiddleware,async(req,res)=>{
 });
 app.get('/api/online-users',async(req,res)=>{try{const a=await getActiveOnlineUsers();res.json({count:a.length,users:a.map(u=>({name:u.displayName||u.username||'User'}))});}catch(e){res.json({count:0,users:[]});}});
 
+
+// ===== PREMIUM API KEY =====
+app.get('/api-access', authMiddleware, async(req,res)=>{
+  try{
+    const user=await getUserById(req.user.id), active=await getActiveOnlineUsers();
+    res.render('index',{page:'api-access',user,onlineUsers:active.length,onlineUserList:active.map(u=>({name:u.displayName||u.username||'User'})),countries,
+      error:req.query.error||null,success:req.query.success||null,info:null,shortUrl:null,
+      customDomains:(await getEnabledDomains()).filter(d=>d!==normalizeHost(BASE_HOST)),availableDomains:await getEnabledDomains(),baseDomain:BASE_HOST,baseUrl:BASE_URL,
+      generatedApiKey:req.session.generatedApiKey||null});
+    delete req.session.generatedApiKey;
+  }catch(e){res.redirect('/dashboard?error='+encodeURIComponent('Could not open API access page'));}
+});
+app.post('/api-access/generate', authMiddleware, async(req,res)=>{
+  try{
+    const user=await getUserById(req.user.id);
+    if(!user.isPremium)return res.redirect('/plans?error='+encodeURIComponent('API access is available to Premium users only.'));
+    const key=makeApiKey(),hash=sha256(key),prefix=key.slice(0,18);
+    await pool.query('UPDATE users SET api_key_hash=$1,api_key_prefix=$2,api_key_created_at=NOW(),api_enabled=TRUE WHERE id=$3',[hash,prefix,user.id]);
+    req.session.generatedApiKey=key;
+    await notifyUser(user.id,'API key generated','A new Premium API key was generated. Store it safely; it is shown only once.','success');
+    req.session.save(()=>res.redirect('/api-access?success='+encodeURIComponent('New API key generated. Copy it now — it will not be shown again.')));
+  }catch(e){res.redirect('/api-access?error='+encodeURIComponent('Could not generate API key'));}
+});
+app.post('/api-access/revoke', authMiddleware, async(req,res)=>{
+  try{
+    await pool.query("UPDATE users SET api_key_hash=NULL,api_key_prefix='',api_key_created_at=NULL,api_enabled=FALSE WHERE id=$1",[req.user.id]);
+    await notifyUser(req.user.id,'API key revoked','Your API key has been revoked.','info');
+    res.redirect('/api-access?success='+encodeURIComponent('API key revoked'));
+  }catch(e){res.redirect('/api-access?error='+encodeURIComponent('Could not revoke API key'));}
+});
+
+// Premium REST API
+app.post('/api/v1/shorten', authenticateApiKey, async(req,res)=>{
+  try{
+    const user=req.apiUser;
+    const originalUrl=String(req.body.url||req.body.originalUrl||'').trim();
+    const customSlug=String(req.body.customSlug||'').trim();
+    const requestedDomain=normalizeHost(req.body.domain||BASE_HOST);
+    const enabled=await getEnabledDomains();
+    if(!enabled.includes(requestedDomain))return res.status(400).json({error:'Domain is unavailable or disabled'});
+    const unsafe=validateDestinationUrl(originalUrl); if(unsafe)return res.status(400).json({error:unsafe});
+    let shortCode=customSlug;
+    if(shortCode){
+      if(!/^[A-Za-z0-9_-]{2,80}$/.test(shortCode))return res.status(400).json({error:'Invalid customSlug'});
+      const ex=await pool.query('SELECT 1 FROM links WHERE selected_domain=$1 AND short_code=$2',[requestedDomain,shortCode]);
+      if(ex.rowCount)return res.status(409).json({error:'customSlug already exists on this domain'});
+    } else {
+      for(let i=0;i<12;i++){const c=generateShortCode();const ex=await pool.query('SELECT 1 FROM links WHERE selected_domain=$1 AND short_code=$2',[requestedDomain,c]);if(!ex.rowCount){shortCode=c;break;}}
+    }
+    let expiresAt=null; const days=Number(req.body.expiresIn||0); if(days>0)expiresAt=new Date(Date.now()+days*86400000);
+    const password=String(req.body.password||'').trim();
+    const q=await pool.query(`INSERT INTO links(user_id,selected_domain,original_url,short_code,custom_slug,expires_at,password_hash,password_enabled)
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      [user.id,requestedDomain,originalUrl,shortCode,customSlug||null,expiresAt,password?hashLinkPassword(password):null,!!password]);
+    await pool.query('UPDATE users SET total_links=total_links+1 WHERE id=$1',[user.id]);
+    const link=mapLink(q.rows[0]),shortUrl=buildShortUrl(link);
+    res.status(201).json({success:true,id:link.id,shortUrl,domain:link.selectedDomain,shortCode:link.shortCode,expiresAt:link.expiresAt,passwordProtected:link.passwordEnabled});
+  }catch(e){console.error('API shorten error:',e);res.status(500).json({error:'Could not create short link'});}
+});
+app.get('/api/v1/links', authenticateApiKey, async(req,res)=>{
+  try{
+    const q=await pool.query('SELECT * FROM links WHERE user_id=$1 ORDER BY created_at DESC LIMIT 100',[req.apiUser.id]);
+    res.json({links:q.rows.map(mapLink).map(l=>({...l,shortUrl:buildShortUrl(l)}))});
+  }catch(e){res.status(500).json({error:'Could not load links'});}
+});
+app.get('/api/v1/stats', authenticateApiKey, async(req,res)=>{
+  try{
+    const q=await pool.query(`SELECT COUNT(*) FILTER (WHERE is_bot=FALSE)::bigint AS real_clicks,
+      COUNT(*) FILTER (WHERE is_bot=TRUE)::bigint AS bot_clicks,
+      COUNT(DISTINCT NULLIF(ip_address,'')) FILTER (WHERE is_bot=FALSE)::bigint AS unique_visitors
+      FROM clicks WHERE user_id=$1`,[req.apiUser.id]);
+    const l=await pool.query('SELECT COUNT(*)::bigint AS links FROM links WHERE user_id=$1',[req.apiUser.id]);
+    res.json({links:Number(l.rows[0].links),realClicks:Number(q.rows[0].real_clicks),botClicks:Number(q.rows[0].bot_clicks),uniqueVisitors:Number(q.rows[0].unique_visitors)});
+  }catch(e){res.status(500).json({error:'Could not load stats'});}
+});
+
+// ===== NOTIFICATIONS =====
+app.get('/notifications', authMiddleware, async(req,res)=>{
+  try{
+    const active=await getActiveOnlineUsers();
+    const q=await pool.query('SELECT * FROM notifications WHERE user_id=$1 ORDER BY created_at DESC LIMIT 100',[req.user.id]);
+    res.render('index',{page:'notifications',user:await getUserById(req.user.id),notifications:q.rows,onlineUsers:active.length,onlineUserList:active.map(u=>({name:u.displayName||u.username||'User'})),countries,
+      error:req.query.error||null,success:req.query.success||null,info:null,shortUrl:null,
+      customDomains:CUSTOM_DOMAINS,availableDomains:AVAILABLE_DOMAINS,baseDomain:BASE_HOST,baseUrl:BASE_URL});
+  }catch(e){res.redirect('/dashboard?error='+encodeURIComponent('Could not load notifications'));}
+});
+app.post('/notifications/read-all', authMiddleware, async(req,res)=>{
+  await pool.query('UPDATE notifications SET is_read=TRUE WHERE user_id=$1',[req.user.id]);
+  res.redirect('/notifications?success='+encodeURIComponent('Notifications marked as read'));
+});
+
+// ===== LEGAL / FAQ =====
+app.get('/faq', async(req,res)=>renderStaticPage(req,res,'faq'));
+app.get('/privacy', async(req,res)=>renderStaticPage(req,res,'privacy'));
+app.get('/terms', async(req,res)=>renderStaticPage(req,res,'terms'));
+async function renderStaticPage(req,res,page){
+  try{
+    const active=await getActiveOnlineUsers();
+    const user=req.session?.user?.id?await getUserById(req.session.user.id):null;
+    res.render('index',{page,user,onlineUsers:active.length,onlineUserList:active.map(u=>({name:u.displayName||u.username||'User'})),countries,error:null,success:null,info:null,shortUrl:null,customDomains:CUSTOM_DOMAINS,availableDomains:AVAILABLE_DOMAINS,baseDomain:BASE_HOST,baseUrl:BASE_URL});
+  }catch(e){res.status(500).send('Page error');}
+}
+
+
+// ===== PLANS / MANUAL PAYMENT =====
+app.get('/plans', authMiddleware, async (req,res)=>{
+  try {
+    const active = await getActiveOnlineUsers();
+    const payments = await pool.query('SELECT id,plan_months,amount,method,transaction_id,status,admin_note,created_at,reviewed_at FROM payments WHERE user_id=$1 ORDER BY created_at DESC LIMIT 20',[req.user.id]);
+    const user = await getUserById(req.user.id);
+    res.render('index',{
+      page:'plans',user,onlineUsers:active.length,onlineUserList:active.map(u=>({name:u.displayName||u.username||'User'})),
+      countries,error:req.query.error||null,success:req.query.success||null,info:null,shortUrl:null,
+      customDomains:CUSTOM_DOMAINS,availableDomains:AVAILABLE_DOMAINS,baseDomain:BASE_HOST,baseUrl:BASE_URL,
+      freeLinkLimit:FREE_LINK_LIMIT,plan1Price:PLAN_1_PRICE,plan3Price:PLAN_3_PRICE,bkashNumber:BKASH_NUMBER,nagadNumber:NAGAD_NUMBER,
+      paymentHistory:payments.rows
+    });
+  } catch(e){ console.error('Plans page error:',e); res.redirect('/dashboard?error='+encodeURIComponent('Could not load plans')); }
+});
+
+app.post('/payments', authMiddleware, paymentUpload.single('screenshot'), async (req,res)=>{
+  try {
+    const months = Number(req.body.planMonths);
+    if (![1,3].includes(months)) return res.redirect('/plans?error='+encodeURIComponent('Invalid plan'));
+    const method = String(req.body.method||'').toLowerCase();
+    if (!['bkash','nagad'].includes(method)) return res.redirect('/plans?error='+encodeURIComponent('Choose bKash or Nagad'));
+    const txn = String(req.body.transactionId||'').trim();
+    if (txn.length < 4) return res.redirect('/plans?error='+encodeURIComponent('Enter a valid transaction ID'));
+    if (!req.file) return res.redirect('/plans?error='+encodeURIComponent('Upload payment screenshot'));
+    const amount = expectedPlanAmount(months);
+    await pool.query(`INSERT INTO payments(user_id,plan_months,amount,method,transaction_id,screenshot,screenshot_mime)
+      VALUES($1,$2,$3,$4,$5,$6,$7)`,[req.user.id,months,amount,method,txn,req.file.buffer,req.file.mimetype]);
+    res.redirect('/plans?success='+encodeURIComponent('Payment submitted. Admin will review it.'));
+  } catch(e){
+    const msg = e.code === '23505' ? 'This transaction ID was already submitted.' : ('Payment submission failed: '+e.message);
+    res.redirect('/plans?error='+encodeURIComponent(msg));
+  }
+});
+
+// ===== ADMIN =====
+app.get('/admin/login', async (req,res)=>{
+  if (await getAdminState(req)) return res.redirect('/admin');
+  let active=[]; try{active=await getActiveOnlineUsers();}catch(e){}
+  res.render('index',{page:'admin-login',user:null,onlineUsers:active.length,onlineUserList:active.map(u=>({name:u.displayName||u.username||'User'})),countries,
+    error:req.query.error||null,success:null,info:null,shortUrl:null,customDomains:CUSTOM_DOMAINS,availableDomains:AVAILABLE_DOMAINS,baseDomain:BASE_HOST,baseUrl:BASE_URL});
+});
+app.post('/admin/login', async (req,res)=>{
+  const email=String(req.body.email||'').trim().toLowerCase(), password=String(req.body.password||'');
+  if (!ADMIN_EMAIL || !ADMIN_PASSWORD) return res.redirect('/admin/login?error='+encodeURIComponent('ADMIN_EMAIL / ADMIN_PASSWORD are not configured in Railway Variables.'));
+  if (email !== ADMIN_EMAIL || password !== ADMIN_PASSWORD) return res.redirect('/admin/login?error='+encodeURIComponent('Invalid admin credentials'));
+  req.session.admin=true;
+  return req.session.save(()=>res.redirect('/admin'));
+});
+app.post('/admin/logout', (req,res)=>{ delete req.session.admin; req.session.save(()=>res.redirect('/admin/login')); });
+
+app.get('/admin', adminMiddleware, async (req,res)=>{
+  try {
+    const [usersR,linksR,payR,active,totalClicksR,botClicksR,auditR,domainsR,backupsR] = await Promise.all([
+      pool.query('SELECT * FROM users ORDER BY created_at DESC LIMIT 500'),
+      pool.query(`SELECT l.*,u.display_name,u.username FROM links l JOIN users u ON u.id=l.user_id ORDER BY l.created_at DESC LIMIT 500`),
+      pool.query(`SELECT p.*,u.display_name,u.username,u.email FROM payments p JOIN users u ON u.id=p.user_id ORDER BY p.created_at DESC LIMIT 300`),
+      getActiveOnlineUsers(),
+      pool.query('SELECT COUNT(*)::bigint AS count FROM clicks WHERE is_bot=FALSE'),
+      pool.query('SELECT COUNT(*)::bigint AS count FROM clicks WHERE is_bot=TRUE'),
+      pool.query('SELECT * FROM admin_audit_logs ORDER BY created_at DESC LIMIT 100'),
+      pool.query('SELECT * FROM domain_settings ORDER BY domain=$1 DESC,domain ASC',[normalizeHost(BASE_HOST)]),
+      pool.query('SELECT id,created_at,created_by FROM app_backups ORDER BY created_at DESC LIMIT 20')
+    ]);
+    const users=usersR.rows.map(mapUser);
+    res.render('index',{page:'admin',user:req.session?.user?.id?await getUserById(req.session.user.id):null,onlineUsers:active.length,onlineUserList:active.map(u=>({name:u.displayName||u.username||'User'})),countries,
+      error:req.query.error||null,success:req.query.success||null,info:null,shortUrl:null,customDomains:CUSTOM_DOMAINS,availableDomains:AVAILABLE_DOMAINS,baseDomain:BASE_HOST,baseUrl:BASE_URL,
+      adminUsers:users,adminLinks:linksR.rows,adminPayments:payR.rows,adminAudit:auditR.rows,adminDomains:domainsR.rows,adminBackups:backupsR.rows,
+      adminStats:{totalUsers:users.length,online:active.length,totalLinks:linksR.rows.length,totalClicks:Number(totalClicksR.rows[0].count),botClicks:Number(botClicksR.rows[0].count),pendingPayments:payR.rows.filter(p=>p.status==='pending').length},
+      freeLinkLimit:FREE_LINK_LIMIT,plan1Price:PLAN_1_PRICE,plan3Price:PLAN_3_PRICE,bkashNumber:BKASH_NUMBER,nagadNumber:NAGAD_NUMBER
+    });
+  }catch(e){console.error('Admin page error:',e);res.redirect('/admin/login?error='+encodeURIComponent('Admin page database error'));}
+});
+
+app.post('/admin/users/:id/block', adminMiddleware, async(req,res)=>{
+  try{
+    const id=Number(req.params.id),u=await getUserById(id); if(!u)return res.redirect('/admin?error='+encodeURIComponent('User not found'));
+    const next=u.accountStatus==='blocked'?'active':'blocked';
+    await pool.query('UPDATE users SET account_status=$1,blocked_reason=$2 WHERE id=$3',[next,next==='blocked'?String(req.body.reason||'Blocked by admin'):'',id]);
+    if(next==='blocked') await pool.query('DELETE FROM online_users WHERE user_id=$1',[id]);
+    await auditAdmin(req,'user_status','user',id,`status=${next}`);
+    await notifyUser(id,'Account status updated',`Your account is now ${next}.`,next==='blocked'?'warning':'success');
+    res.redirect('/admin?success='+encodeURIComponent(`User ${next}`));
+  }catch(e){res.redirect('/admin?error='+encodeURIComponent('Could not update user'));}
+});
+app.post('/admin/users/:id/plan', adminMiddleware, async(req,res)=>{
+  try{
+    const id=Number(req.params.id),months=Number(req.body.months||0);
+    if(months===0) await pool.query("UPDATE users SET plan_type='free',premium_until=NULL WHERE id=$1",[id]);
+    else if([1,3,6,12].includes(months)) await pool.query("UPDATE users SET plan_type='premium',premium_until=GREATEST(COALESCE(premium_until,NOW()),NOW()) + ($1 || ' months')::interval WHERE id=$2",[months,id]);
+    else throw new Error('Invalid months');
+    await auditAdmin(req,'user_plan','user',id,`months=${months}`);
+    await notifyUser(id,'Plan updated',months===0?'Your account is now on the Free plan.':`Premium access was extended by ${months} month(s).`,'success');
+    res.redirect('/admin?success='+encodeURIComponent('User plan updated'));
+  }catch(e){res.redirect('/admin?error='+encodeURIComponent('Could not update plan'));}
+});
+app.post('/admin/links/:id/toggle', adminMiddleware, async(req,res)=>{
+  try{const id=Number(req.params.id);await pool.query('UPDATE links SET is_active=NOT is_active,updated_at=NOW() WHERE id=$1',[id]);await auditAdmin(req,'link_toggle','link',id,'');res.redirect('/admin?success='+encodeURIComponent('Link status updated'));}catch(e){res.redirect('/admin?error='+encodeURIComponent('Could not update link'));}
+});
+app.post('/admin/links/:id/delete', adminMiddleware, async(req,res)=>{
+  try{const id=Number(req.params.id);await pool.query('DELETE FROM links WHERE id=$1',[id]);await auditAdmin(req,'link_delete','link',id,'');res.redirect('/admin?success='+encodeURIComponent('Link deleted'));}catch(e){res.redirect('/admin?error='+encodeURIComponent('Could not delete link'));}
+});
+app.get('/admin/payments/:id/screenshot', adminMiddleware, async(req,res)=>{
+  try{const q=await pool.query('SELECT screenshot,screenshot_mime FROM payments WHERE id=$1',[Number(req.params.id)]);if(!q.rowCount||!q.rows[0].screenshot)return res.status(404).send('No screenshot');res.type(q.rows[0].screenshot_mime||'image/jpeg').send(q.rows[0].screenshot);}catch(e){res.status(500).send('Screenshot error');}
+});
+app.post('/admin/payments/:id/approve', adminMiddleware, async(req,res)=>{
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    const q=await client.query("SELECT * FROM payments WHERE id=$1 FOR UPDATE",[Number(req.params.id)]);
+    if(!q.rowCount)throw new Error('Payment not found');
+    const p=q.rows[0];
+    if(p.status!=='approved'){
+      await client.query("UPDATE users SET plan_type='premium',premium_until=GREATEST(COALESCE(premium_until,NOW()),NOW()) + ($1 || ' months')::interval WHERE id=$2",[p.plan_months,p.user_id]);
+      await client.query("UPDATE payments SET status='approved',admin_note=$1,reviewed_at=NOW() WHERE id=$2",[String(req.body.note||''),p.id]);
+    }
+    await client.query('COMMIT'); await auditAdmin(req,'payment_approve','payment',p.id,`user=${p.user_id}; months=${p.plan_months}`); await notifyUser(p.user_id,'Payment approved',`Your ${p.plan_months}-month Premium plan is active.`,'success'); res.redirect('/admin?success='+encodeURIComponent('Payment approved and Premium activated'));
+  }catch(e){await client.query('ROLLBACK');res.redirect('/admin?error='+encodeURIComponent(e.message));}finally{client.release();}
+});
+app.post('/admin/payments/:id/reject', adminMiddleware, async(req,res)=>{
+  try{const id=Number(req.params.id);const q=await pool.query("UPDATE payments SET status='rejected',admin_note=$1,reviewed_at=NOW() WHERE id=$2 RETURNING user_id",[String(req.body.note||'Rejected by admin'),id]);await auditAdmin(req,'payment_reject','payment',id,'');if(q.rowCount)await notifyUser(q.rows[0].user_id,'Payment rejected','Your payment request was rejected. Check the admin note or contact support.','warning');res.redirect('/admin?success='+encodeURIComponent('Payment rejected'));}catch(e){res.redirect('/admin?error='+encodeURIComponent('Could not reject payment'));}
+});
+
+app.post('/admin/users/:id/delete', adminMiddleware, async(req,res)=>{
+  try{
+    const id=Number(req.params.id);
+    await pool.query('DELETE FROM users WHERE id=$1',[id]);
+    await auditAdmin(req,'user_delete','user',id,'Cascade deleted user data');
+    res.redirect('/admin?success='+encodeURIComponent('User deleted'));
+  }catch(e){res.redirect('/admin?error='+encodeURIComponent('Could not delete user'));}
+});
+app.post('/admin/domains/:domain/toggle', adminMiddleware, async(req,res)=>{
+  try{
+    const domain=normalizeHost(req.params.domain);
+    if(domain===normalizeHost(BASE_HOST)) return res.redirect('/admin?error='+encodeURIComponent('Base domain cannot be disabled.'));
+    const q=await pool.query('UPDATE domain_settings SET enabled=NOT enabled WHERE domain=$1 RETURNING enabled',[domain]);
+    await auditAdmin(req,'domain_toggle','domain',domain,q.rowCount?`enabled=${q.rows[0].enabled}`:'not found');
+    res.redirect('/admin?success='+encodeURIComponent('Domain status updated'));
+  }catch(e){res.redirect('/admin?error='+encodeURIComponent('Could not update domain'));}
+});
+app.post('/admin/domains/:domain/maintenance', adminMiddleware, async(req,res)=>{
+  try{
+    const domain=normalizeHost(req.params.domain);
+    const q=await pool.query('UPDATE domain_settings SET maintenance=NOT maintenance WHERE domain=$1 RETURNING maintenance',[domain]);
+    await auditAdmin(req,'domain_maintenance','domain',domain,q.rowCount?`maintenance=${q.rows[0].maintenance}`:'not found');
+    res.redirect('/admin?success='+encodeURIComponent('Domain maintenance status updated'));
+  }catch(e){res.redirect('/admin?error='+encodeURIComponent('Could not update domain maintenance'));}
+});
+app.post('/admin/domains/check', adminMiddleware, async(req,res)=>{
+  try{
+    for(const domain of AVAILABLE_DOMAINS){
+      let status='down';
+      try{
+        const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),5000);
+        const r=await fetch(`${domainOrigin(domain)}/health`,{method:'GET',signal:controller.signal,redirect:'manual'});
+        clearTimeout(timer); status=r.ok?'healthy':`http-${r.status}`;
+      }catch(e){status='down';}
+      await pool.query('UPDATE domain_settings SET last_health=$1,last_checked_at=NOW() WHERE domain=$2',[status,normalizeHost(domain)]);
+    }
+    await auditAdmin(req,'domain_health_check','domain','','Checked all configured domains');
+    res.redirect('/admin?success='+encodeURIComponent('Domain health check completed'));
+  }catch(e){res.redirect('/admin?error='+encodeURIComponent('Domain health check failed'));}
+});
+app.post('/admin/backup/create', adminMiddleware, async(req,res)=>{
+  try{await createBackupSnapshot(ADMIN_EMAIL||'admin');await auditAdmin(req,'backup_create','backup','','Manual snapshot created');res.redirect('/admin?success='+encodeURIComponent('Database snapshot created'));}catch(e){res.redirect('/admin?error='+encodeURIComponent('Backup failed'));}
+});
+app.get('/admin/backup/:id/download', adminMiddleware, async(req,res)=>{
+  try{
+    const q=await pool.query('SELECT backup_data,created_at FROM app_backups WHERE id=$1',[Number(req.params.id)]);
+    if(!q.rowCount)return res.status(404).send('Backup not found');
+    res.setHeader('Content-Type','application/json; charset=utf-8');
+    res.setHeader('Content-Disposition',`attachment; filename="tpib-backup-${req.params.id}.json"`);
+    res.send(JSON.stringify(q.rows[0].backup_data,null,2));
+  }catch(e){res.status(500).send('Backup download failed');}
+});
+
 // ===== HEALTH =====
 app.get('/health',async(req,res)=>{
   try{const db=await pool.query('SELECT NOW() AS now');res.json({status:'ok',database:'postgresql',dbTime:db.rows[0].now,domains:AVAILABLE_DOMAINS,baseUrl:BASE_URL,uptime:process.uptime()});}catch(e){res.status(500).json({status:'error',database:'down',error:e.message});}
+});
+
+// ===== PASSWORD-PROTECTED SHORT LINKS =====
+app.post('/unlock/:id', async(req,res)=>{
+  try{
+    const q=await pool.query('SELECT * FROM links WHERE id=$1',[Number(req.params.id)]);
+    if(!q.rowCount)return res.status(404).send('Link not found');
+    const row=q.rows[0],link=mapLink(row);
+    if(!row.password_enabled || !row.password_hash)return res.redirect(buildShortUrl(link));
+    if(!verifyLinkPassword(req.body.password,row.password_hash)){
+      return res.redirect(`${buildShortUrl(link)}?unlockError=1`);
+    }
+    if(!req.session.unlockedLinks)req.session.unlockedLinks={};
+    req.session.unlockedLinks[String(link.id)]=Date.now()+30*60*1000;
+    req.session.save(()=>res.redirect(buildShortUrl(link)));
+  }catch(e){res.status(500).send('Unlock failed');}
 });
 
 // ===== SHORT URL REDIRECT (keep after all named routes) =====
@@ -494,6 +1071,15 @@ app.get('/:code',async(req,res)=>{
     const code=req.params.code;if(['favicon.ico','robots.txt','sitemap.xml'].includes(code))return res.status(404).send('Not found');
     const requestHost=normalizeHost(req.get('host'));const q=await pool.query('SELECT * FROM links WHERE selected_domain=$1 AND short_code=$2 AND is_active=TRUE LIMIT 1',[requestHost,code]);if(!q.rowCount)return res.status(404).send('Link not found or inactive');let link=mapLink(q.rows[0]);
     if(link.isExpired||(link.expiresAt&&new Date(link.expiresAt)<new Date())){await pool.query('UPDATE links SET is_expired=TRUE WHERE id=$1',[link.id]);return res.status(410).send('This link has expired');}
+    const uaPre=req.headers['user-agent']||'';
+    if(q.rows[0].password_enabled && q.rows[0].password_hash && !isSocialPreviewBot(uaPre)){
+      const unlocked=req.session?.unlockedLinks?.[String(link.id)];
+      if(!unlocked || Number(unlocked)<Date.now()){
+        const active=await getActiveOnlineUsers();
+        const user=req.session?.user?.id?await getUserById(req.session.user.id):null;
+        return res.status(401).render('index',{page:'link-password',user,link,unlockError:req.query.unlockError==='1',onlineUsers:active.length,onlineUserList:active.map(u=>({name:u.displayName||u.username||'User'})),countries,error:null,success:null,info:null,shortUrl:null,customDomains:CUSTOM_DOMAINS,availableDomains:AVAILABLE_DOMAINS,baseDomain:BASE_HOST,baseUrl:getBaseUrl(req)});
+      }
+    }
     const ip=normalizeClientIp(req.ip||req.connection.remoteAddress||''),ua=req.headers['user-agent']||'',ref=req.headers['referer']||req.headers['referrer']||'',bot=isBot(ua),di=getDeviceInfo(ua);let countryCode='XX';try{const geo=require('geoip-lite').lookup(ip);if(geo?.country)countryCode=String(geo.country).toUpperCase();}catch(e){}
     await pool.query(`INSERT INTO clicks(link_id,user_id,ip_address,user_agent,device,browser,os,country,country_code,referrer,is_bot) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,[link.id,link.userId,ip,ua,di.device,di.browser,di.os,countryInfo(countryCode).name,countryCode,ref,bot]);
     if(!bot){await Promise.all([pool.query('UPDATE links SET clicks=clicks+1 WHERE id=$1',[link.id]),pool.query('UPDATE users SET total_clicks=total_clicks+1 WHERE id=$1',[link.userId])]);}
@@ -513,6 +1099,8 @@ async function start(){
     console.log('✅ PostgreSQL connected');
     await initDatabase();
     await migrateLegacyJsonIfPossible();
+    await maybeCreateAutomaticBackup();
+    setInterval(()=>maybeCreateAutomaticBackup(), Math.min(AUTO_BACKUP_HOURS,6)*3600000).unref();
     console.log('✅ Session store: PostgreSQL');
     app.listen(PORT,'0.0.0.0',()=>{
       console.log(`🚀 Server running on port ${PORT}`);console.log(`📡 Base URL: ${BASE_URL}`);console.log('🌐 Available Domains:');AVAILABLE_DOMAINS.forEach((d,i)=>console.log(`   ${i+1}. https://${d}`));console.log(`✅ Health check: ${BASE_URL}/health`);console.log(`🔐 Login page: ${BASE_URL}/login`);console.log(`📊 Dashboard: ${BASE_URL}/dashboard`);
