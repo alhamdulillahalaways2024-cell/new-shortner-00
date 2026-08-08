@@ -1032,7 +1032,262 @@
             .features-grid { grid-template-columns: 1fr 1fr; gap: 0.8rem; }
             .feature-card { padding: 1rem; }
         }
-    </style>
+    
+        /* ===== V7.2 ICON / TEXT / BUTTON VISIBILITY FIX ===== */
+
+        /* Global readable text */
+        body, .container, .navbar, .glass-card, .link-card, .stat-card,
+        .feature-card, .modal-content, .dropdown-menu, .admin-table,
+        .admin-table th, .admin-table td {
+            color: var(--text) !important;
+        }
+
+        p, label, small, .label, .tiny-note, .link-original,
+        .profile-item-label, .plan-usage-sub, .plan-usage-expiry {
+            opacity: 1 !important;
+        }
+
+        /* Navigation text and icons */
+        .navbar a,
+        .navbar button,
+        .nav-links a,
+        .user-profile-btn,
+        .dropdown-item {
+            color: #F7FAFF !important;
+            opacity: 1 !important;
+        }
+
+        .nav-links a {
+            font-weight: 700 !important;
+        }
+
+        .dropdown-item {
+            display: flex !important;
+            align-items: center !important;
+            gap: .75rem !important;
+            min-height: 42px !important;
+        }
+
+        /* Font Awesome icons everywhere */
+        i,
+        .fa,
+        .fas,
+        .far,
+        .fab,
+        [class^="fa-"],
+        [class*=" fa-"] {
+            color: currentColor !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            min-width: 1.1em !important;
+            line-height: 1 !important;
+        }
+
+        /* Inline SVG icons everywhere */
+        svg,
+        .telegram-inline-icon,
+        .facebook-inline-icon,
+        .whatsapp-inline-icon {
+            display: inline-block !important;
+            width: 1.15em !important;
+            height: 1.15em !important;
+            min-width: 1.15em !important;
+            flex: 0 0 auto !important;
+            color: currentColor !important;
+            fill: currentColor !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            vertical-align: -0.15em !important;
+        }
+
+        svg path {
+            fill: currentColor;
+        }
+
+        /* Dashboard / navigation icon emphasis */
+        .nav-links a[href="/dashboard"],
+        .nav-links a[href="/shorten-page"],
+        .nav-links a[href="/api-access"],
+        .nav-links a[href="/notifications"],
+        .nav-links a[href="/plans"],
+        .nav-links a[href="/admin"] {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Buttons: never let shine overlay hide text/icon */
+        .btn,
+        button,
+        .copy-btn {
+            color: #FFFFFF !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            isolation: isolate;
+        }
+
+        .btn > *,
+        button > *,
+        .copy-btn > * {
+            position: relative;
+            z-index: 2;
+            color: inherit !important;
+            opacity: 1 !important;
+        }
+
+        .btn::after {
+            z-index: 0 !important;
+            pointer-events: none !important;
+        }
+
+        .btn-primary {
+            color: #FFFFFF !important;
+        }
+
+        .btn-secondary {
+            color: #F3F7FF !important;
+            background: rgba(255,255,255,.085) !important;
+            border-color: rgba(255,255,255,.18) !important;
+        }
+
+        .btn-warning {
+            color: #17120A !important;
+            background: #FFCB5C !important;
+        }
+
+        .btn-danger {
+            color: #FFFFFF !important;
+        }
+
+        .btn-telegram {
+            color: #FFFFFF !important;
+        }
+
+        /* Dashboard headings and stat labels */
+        .stat-card .number {
+            opacity: 1 !important;
+            filter: none !important;
+        }
+
+        .stat-card .label,
+        .analytics-stats .stat-item .label,
+        .analytics-stats .stat-item .value,
+        .country-item,
+        .country-name,
+        .plan-usage-title {
+            color: #F1F5FF !important;
+            opacity: 1 !important;
+        }
+
+        .analytics-stats .stat-item .label,
+        .plan-usage-sub,
+        .plan-usage-expiry,
+        .link-original {
+            color: #C7D2ED !important;
+        }
+
+        /* Links */
+        a {
+            text-decoration-thickness: 1px;
+            text-underline-offset: 3px;
+        }
+
+        .link-url,
+        .short-link-display .link,
+        .footer a {
+            color: #8FEAFF !important;
+            opacity: 1 !important;
+        }
+
+        /* Inputs/selects */
+        .form-control,
+        input,
+        select,
+        textarea {
+            color: #FFFFFF !important;
+            caret-color: #FFFFFF !important;
+            opacity: 1 !important;
+        }
+
+        .form-control::placeholder,
+        input::placeholder,
+        textarea::placeholder {
+            color: #AEB9D4 !important;
+            opacity: .9 !important;
+        }
+
+        select option {
+            color: #FFFFFF !important;
+            background: #161D36 !important;
+        }
+
+        select option:disabled {
+            color: #A9B2C8 !important;
+        }
+
+        /* Profile / dropdown readability */
+        .user-name,
+        .profile-item-value,
+        .profile-content,
+        .dropdown-item span {
+            color: #FFFFFF !important;
+            opacity: 1 !important;
+        }
+
+        /* Admin controls and tables */
+        .admin-table th {
+            color: #EAF0FF !important;
+        }
+
+        .admin-table td {
+            color: #DDE6FA !important;
+        }
+
+        .admin-actions .btn {
+            min-height: 34px;
+        }
+
+        /* Alerts */
+        .alert {
+            color: #FFFFFF !important;
+            opacity: 1 !important;
+        }
+
+        /* Keep emoji/symbol icons from becoming too faint */
+        .logo-icon,
+        .plan-usage-icon,
+        .country-flag,
+        .feature-icon,
+        .social-icon {
+            opacity: 1 !important;
+            filter: none !important;
+        }
+
+        /* Mobile: do not squash icons/text */
+        @media (max-width: 768px) {
+            .nav-links a,
+            .dropdown-item,
+            .btn {
+                font-size: .9rem !important;
+            }
+
+            .btn,
+            .dropdown-item {
+                white-space: normal !important;
+            }
+
+            svg,
+            i,
+            .fas,
+            .far,
+            .fab {
+                flex-shrink: 0 !important;
+            }
+        }
+
+</style>
 </head>
 <body>
     <% if (typeof announcement !== 'undefined' && announcement && announcement.message) { %>
@@ -1064,12 +1319,12 @@
         <div class="nav-links">
             <a href="/">Home</a>
             <% if (typeof user !== 'undefined' && user) { %>
-                <a href="/dashboard">Dashboard</a>
-                <a href="/shorten-page">Short Link</a>
-                <a href="/api-access">API</a>
-                <a href="/notifications">Notifications</a>
-                <a href="/plans">Plans</a>
-                <% if (user.isAdmin) { %><a href="/admin">Admin</a><% } %>
+                <a href="/dashboard"><i class="fas fa-chart-line" aria-hidden="true"></i> Dashboard</a>
+                <a href="/shorten-page"><i class="fas fa-link" aria-hidden="true"></i> Short Link</a>
+                <a href="/api-access"><i class="fas fa-code" aria-hidden="true"></i> API</a>
+                <a href="/notifications"><i class="fas fa-bell" aria-hidden="true"></i> Notifications</a>
+                <a href="/plans"><i class="fas fa-crown" aria-hidden="true"></i> Plans</a>
+                <% if (user.isAdmin) { %><a href="/admin"><i class="fas fa-shield-halved" aria-hidden="true"></i> Admin</a><% } %>
             <% } %>
 
             <span class="live-counter">
