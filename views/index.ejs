@@ -577,6 +577,29 @@
         .login-modal-brand .brand-icon { width:38px;height:38px;margin:0;border-radius:50%; }
         .login-modal-brand .brand-icon svg { width:24px;height:24px; }
 
+
+        /* ===== V6.5 ADMIN / PLANS ===== */
+        .admin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1rem;margin-bottom:1.5rem}
+        .admin-table-wrap{overflow:auto;border:1px solid var(--glass-border);border-radius:16px;background:var(--glass)}
+        .admin-table{width:100%;border-collapse:collapse;min-width:900px}
+        .admin-table th,.admin-table td{padding:.8rem;border-bottom:1px solid var(--glass-border);text-align:left;font-size:.82rem;vertical-align:middle}
+        .admin-table th{color:var(--accent);background:rgba(255,255,255,.035);position:sticky;top:0}
+        .admin-table td{color:var(--text-muted)}
+        .admin-table strong{color:var(--text)}
+        .status-pill{display:inline-flex;padding:.18rem .65rem;border-radius:999px;font-size:.72rem;font-weight:700;border:1px solid var(--glass-border)}
+        .status-pill.ok{color:var(--success);background:rgba(0,230,118,.08)}
+        .status-pill.warn{color:#ffbf47;background:rgba(255,191,71,.08)}
+        .status-pill.bad{color:var(--danger);background:rgba(255,68,102,.08)}
+        .admin-actions{display:flex;gap:.35rem;flex-wrap:wrap}
+        .admin-actions form{display:inline-flex;gap:.35rem;align-items:center}
+        .admin-actions select,.admin-actions input{background:#171728;color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:.38rem .55rem}
+        .plan-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.2rem;margin:1.5rem 0}
+        .plan-card{padding:1.5rem;border-radius:18px;border:1px solid var(--glass-border);background:var(--glass)}
+        .plan-card.featured{border-color:rgba(0,212,255,.45);box-shadow:0 0 30px rgba(0,212,255,.08)}
+        .plan-price{font-size:2rem;font-weight:900;color:var(--accent);margin:.5rem 0}
+        .payment-box{max-width:760px;margin:1.5rem auto}
+        .tiny-note{font-size:.78rem;color:var(--text-muted)}
+
         @media (max-width: 992px) {
             .brand-center h1 { font-size: 2.8rem; }
             .analytics-grid { grid-template-columns: 1fr; }
@@ -648,6 +671,10 @@
             <% if (typeof user !== 'undefined' && user) { %>
                 <a href="/dashboard">Dashboard</a>
                 <a href="/shorten-page">Short Link</a>
+                <a href="/api-access">API</a>
+                <a href="/notifications">Notifications</a>
+                <a href="/plans">Plans</a>
+                <% if (user.isAdmin) { %><a href="/admin">Admin</a><% } %>
             <% } %>
 
             <span class="live-counter">
@@ -678,6 +705,10 @@
                         <button class="dropdown-item" onclick="openProfileModal()"><i class="fas fa-user"></i> User Details</button>
                         <button class="dropdown-item" onclick="window.location.href='/dashboard'"><i class="fas fa-tachometer-alt"></i> Dashboard</button>
                         <button class="dropdown-item" onclick="window.location.href='/shorten-page'"><i class="fas fa-link"></i> Short Link</button>
+                        <button class="dropdown-item" onclick="window.location.href='/plans'"><i class="fas fa-crown"></i> Plans & Payment</button>
+                        <button class="dropdown-item" onclick="window.location.href='/api-access'"><i class="fas fa-code"></i> Premium API</button>
+                        <button class="dropdown-item" onclick="window.location.href='/notifications'"><i class="fas fa-bell"></i> Notifications</button>
+                        <% if (user.isAdmin) { %><button class="dropdown-item" onclick="window.location.href='/admin'"><i class="fas fa-shield-halved"></i> Admin Panel</button><% } %>
                         <button class="dropdown-item" onclick="window.location.href='/'"><i class="fas fa-home"></i> Home</button>
                         <div class="dropdown-divider"></div>
                         <form action="/logout" method="POST" style="display: inline;">
@@ -929,6 +960,18 @@
                         <div class="label">Today</div>
                     </div>
                     <div class="stat-card">
+                        <div class="number"><%= typeof yesterdayClicks !== 'undefined' ? yesterdayClicks : 0 %></div>
+                        <div class="label">Yesterday</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="number"><%= typeof uniqueClicks !== 'undefined' ? uniqueClicks : 0 %></div>
+                        <div class="label">Unique Visitors</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="number"><%= typeof yearClicks !== 'undefined' ? yearClicks : 0 %></div>
+                        <div class="label">This Year</div>
+                    </div>
+                    <div class="stat-card">
                         <div class="number"><%= typeof weekClicks !== 'undefined' ? weekClicks : 0 %></div>
                         <div class="label">This Week</div>
                     </div>
@@ -955,6 +998,21 @@
                             <div class="stat-item"><span class="label">🟢 Real Clicks</span><span class="value success"><%= typeof realClicks !== 'undefined' ? realClicks : 0 %></span></div>
                             <div class="stat-item"><span class="label">📊 Click Rate</span><span class="value"><%= typeof clickRate !== 'undefined' ? clickRate : 0 %>%</span></div>
                         </div>
+                    </div>
+                </div>
+
+                <div class="analytics-grid" style="margin-bottom:2rem;">
+                    <div class="glass-card">
+                        <h3 style="margin-bottom:.8rem;">🔗 Top Referrers</h3>
+                        <% if (typeof topReferrers !== 'undefined' && topReferrers.length) { %>
+                            <% topReferrers.forEach(function(r){ %><div class="stat-item" style="display:flex;justify-content:space-between;padding:.55rem 0;border-bottom:1px solid var(--glass-border);"><span style="max-width:75%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><%= r.name %></span><strong><%= r.count %></strong></div><% }); %>
+                        <% } else { %><p style="color:var(--text-muted);">No referrer data yet.</p><% } %>
+                    </div>
+                    <div class="glass-card">
+                        <h3 style="margin-bottom:.8rem;">🌐 Browsers</h3>
+                        <% if (typeof browserStats !== 'undefined' && browserStats.length) { %>
+                            <% browserStats.forEach(function(r){ %><div class="stat-item" style="display:flex;justify-content:space-between;padding:.55rem 0;border-bottom:1px solid var(--glass-border);"><span><%= r.name %></span><strong><%= r.count %></strong></div><% }); %>
+                        <% } else { %><p style="color:var(--text-muted);">No browser data yet.</p><% } %>
                     </div>
                 </div>
 
@@ -1201,6 +1259,7 @@
                             </select></div>
                             <div class="form-group"><label>Custom Path (optional)</label><input type="text" class="form-control" name="customSlug" maxlength="48" pattern="[A-Za-z0-9_-]+" placeholder="my-link"></div>
                             <div class="form-group"><label>Expiry</label><select class="form-control" name="expiresIn"><option value="">Never</option><option value="1">1 Day</option><option value="7">7 Days</option><option value="30">30 Days</option><option value="90">90 Days</option></select></div>
+                            <div class="form-group"><label>Password (Premium, optional)</label><input type="password" class="form-control" name="linkPassword" minlength="4" maxlength="100" placeholder="Protect this short link"></div>
                         </div>
                         <button type="submit" class="btn btn-primary" id="shortenBtn" style="width:100%;justify-content:center;padding:1rem;">🚀 Create Short Link</button>
                     </form>
@@ -1209,7 +1268,240 @@
                 <% if (typeof shortUrl !== 'undefined' && shortUrl) { %><div class="short-link-display" style="margin-bottom:2rem;"><div><div style="font-size:.8rem;color:var(--text-muted);margin-bottom:.3rem;">YOUR NEW SHORT LINK</div><span class="link"><%= shortUrl %></span></div><div style="display:flex;gap:.5rem;flex-wrap:wrap;"><button class="copy-btn" onclick="copyToClipboard('<%= shortUrl %>')">📋 Copy</button><a class="btn btn-secondary btn-sm" href="<%= shortUrl %>" target="_blank">↗ Test</a></div></div><% } %>
                 <div class="glass-card" style="margin-bottom:2rem;"><h3 style="margin-bottom:.5rem;">👁️ Social Preview</h3><p style="color:var(--text-muted);font-size:.9rem;">Supported social crawlers see your short-domain title and a light description; normal visitors still redirect immediately.</p><div style="margin-top:1rem;background:#fff;color:#222;border-radius:14px;overflow:hidden;max-width:560px;box-shadow:var(--shadow);"><div style="height:130px;background:linear-gradient(135deg,#111827,#312e81);display:flex;align-items:center;justify-content:center;color:#fff;font-size:2.3rem;">🔗</div><div style="padding:1rem;"><div style="font-size:.75rem;text-transform:uppercase;color:#777;"><%= typeof baseDomain !== 'undefined' ? baseDomain : 'thispersonisbrandshortner.com' %></div><strong style="display:block;margin:.25rem 0;"><%= typeof baseDomain !== 'undefined' ? baseDomain : 'thispersonisbrandshortner.com' %></strong><span style="font-size:.85rem;color:#666;">Fast, clean and secure short links powered by THIS PERSON IS BRAND.</span></div></div></div>
                 <h2 style="margin-bottom:1rem;">Recent Short Links</h2>
-                <% if (typeof links !== 'undefined' && links && links.length) { %><% links.forEach(function(link) { %><div class="link-card"><div class="link-top"><div><a class="link-url" href="<%= link.shortUrl %>" target="_blank">🔗 <%= link.shortUrl %></a><div class="link-original">→ <%= link.originalUrl %></div></div><button class="btn btn-secondary btn-sm copy-link-btn" data-url="<%= link.shortUrl %>">📋 Copy</button></div><div class="link-meta"><span>👁️ <%= link.clicks || 0 %> clicks</span><span>🌐 <%= link.selectedDomain || (typeof baseDomain !== 'undefined' ? baseDomain : '') %></span></div></div><% }); %><% } else { %><div class="glass-card" style="text-align:center;color:var(--text-muted);">No links yet. Create your first one above.</div><% } %>
+                <% if (typeof links !== 'undefined' && links && links.length) { %><% links.forEach(function(link) { %><div class="link-card"><div class="link-top"><div><a class="link-url" href="<%= link.shortUrl %>" target="_blank">🔗 <%= link.shortUrl %></a><div class="link-original">→ <%= link.originalUrl %></div></div><div style="display:flex;gap:.4rem;flex-wrap:wrap;"><button class="btn btn-secondary btn-sm copy-link-btn" data-url="<%= link.shortUrl %>">📋 Copy</button><button class="btn btn-secondary btn-sm" onclick="generateQRForDomain('<%= link.shortCode %>','<%= link.selectedDomain %>')">📱 QR</button></div></div><div class="link-meta"><span>👁️ <%= link.clicks || 0 %> clicks</span><span>🌐 <%= link.selectedDomain || (typeof baseDomain !== 'undefined' ? baseDomain : '') %></span><% if(link.passwordEnabled){ %><span>🔒 Password</span><% } %></div></div><% }); %><% } else { %><div class="glass-card" style="text-align:center;color:var(--text-muted);">No links yet. Create your first one above.</div><% } %>
+            </div>
+        <% } %>
+
+
+        <!-- ===== PREMIUM API PAGE ===== -->
+        <% if (page === 'api-access') { %>
+            <div class="brand-center fade-in">
+                <h1 style="font-size:2.4rem;">🔑 Premium API</h1>
+                <p>Create short links from your own website, bot or application.</p>
+            </div>
+            <% if (!user.isPremium) { %>
+                <div class="glass-card" style="max-width:760px;margin:auto;text-align:center;">
+                    <h2>Premium Required</h2><p style="color:var(--text-muted);margin:1rem 0;">API keys are available only while your Premium plan is active.</p>
+                    <a href="/plans" class="btn btn-primary">Upgrade to Premium</a>
+                </div>
+            <% } else { %>
+                <div class="glass-card" style="margin-bottom:1.5rem;">
+                    <h2>API Key</h2>
+                    <p style="color:var(--text-muted);margin:.6rem 0 1rem;">The full key is shown only once. Never put it in public frontend JavaScript.</p>
+                    <% if (typeof generatedApiKey !== 'undefined' && generatedApiKey) { %>
+                        <div class="short-link-display"><code style="word-break:break-all;"><%= generatedApiKey %></code><button class="copy-btn" onclick="copyToClipboard('<%= generatedApiKey %>')">Copy Key</button></div>
+                    <% } else if (user.apiEnabled) { %>
+                        <div class="alert alert-info">Active key: <strong><%= user.apiKeyPrefix %>••••••••</strong></div>
+                    <% } else { %><div class="alert alert-info">No active API key.</div><% } %>
+                    <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
+                        <form method="POST" action="/api-access/generate"><button class="btn btn-primary">Generate / Rotate Key</button></form>
+                        <% if(user.apiEnabled){ %><form method="POST" action="/api-access/revoke"><button class="btn btn-danger">Revoke Key</button></form><% } %>
+                    </div>
+                </div>
+                <div class="glass-card">
+                    <h2>API Usage</h2>
+                    <p style="color:var(--text-muted);margin:.7rem 0;">Header: <code>X-API-Key: YOUR_KEY</code></p>
+                    <h3 style="margin-top:1rem;">POST /api/v1/shorten</h3>
+                    <pre style="white-space:pre-wrap;background:#080812;padding:1rem;border-radius:12px;overflow:auto;">{
+  "url": "https://example.com/long-url",
+  "domain": "<%= baseDomain %>",
+  "customSlug": "optional-name",
+  "expiresIn": 30,
+  "password": "optional-premium-password"
+}</pre>
+                    <h3 style="margin-top:1rem;">GET /api/v1/links</h3>
+                    <h3 style="margin-top:.6rem;">GET /api/v1/stats</h3>
+                </div>
+            <% } %>
+        <% } %>
+
+        <!-- ===== NOTIFICATIONS PAGE ===== -->
+        <% if (page === 'notifications') { %>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;">
+                <div><h1>🔔 Notifications</h1><p style="color:var(--text-muted);">Payments, plans, account and link updates.</p></div>
+                <form method="POST" action="/notifications/read-all"><button class="btn btn-secondary">Mark All Read</button></form>
+            </div>
+            <% if (notifications && notifications.length) { %>
+                <% notifications.forEach(function(n){ %>
+                    <div class="glass-card" style="margin-bottom:.8rem;border-color:<%= n.is_read ? 'var(--glass-border)' : 'rgba(0,212,255,.35)' %>;">
+                        <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;"><strong><%= n.title %></strong><small style="color:var(--text-muted);"><%= new Date(n.created_at).toLocaleString() %></small></div>
+                        <p style="color:var(--text-muted);margin-top:.4rem;"><%= n.message %></p>
+                    </div>
+                <% }); %>
+            <% } else { %><div class="glass-card">No notifications yet.</div><% } %>
+        <% } %>
+
+        <!-- ===== PASSWORD PAGE ===== -->
+        <% if (page === 'link-password') { %>
+            <div class="glass-card" style="max-width:520px;margin:3rem auto;text-align:center;">
+                <div style="font-size:3rem;">🔒</div><h2>Password Protected Link</h2>
+                <p style="color:var(--text-muted);margin:.7rem 0 1.2rem;">Enter the password to continue to this destination.</p>
+                <% if (typeof unlockError !== 'undefined' && unlockError) { %><div class="alert alert-danger">Incorrect password.</div><% } %>
+                <form method="POST" action="/unlock/<%= link.id %>">
+                    <input class="form-control" type="password" name="password" required autofocus placeholder="Link password">
+                    <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:1rem;">Unlock & Continue</button>
+                </form>
+            </div>
+        <% } %>
+
+        <!-- ===== FAQ ===== -->
+        <% if (page === 'faq') { %>
+            <div class="brand-center"><h1 style="font-size:2.4rem;">FAQ</h1><p>Frequently asked questions about the shortener.</p></div>
+            <div class="glass-card"><h3>How fast is redirect?</h3><p style="color:var(--text-muted);">Normal visitors use a direct HTTP 302 redirect after analytics and security checks.</p><hr style="border-color:var(--glass-border);margin:1rem 0;"><h3>Do custom domains work?</h3><p style="color:var(--text-muted);">Yes, when the domain is connected to Railway and enabled by the administrator.</p><hr style="border-color:var(--glass-border);margin:1rem 0;"><h3>Who can use the API?</h3><p style="color:var(--text-muted);">Premium users with an active API key.</p></div>
+        <% } %>
+
+        <% if (page === 'privacy') { %>
+            <div class="brand-center"><h1 style="font-size:2.4rem;">Privacy Policy</h1></div>
+            <div class="glass-card"><p style="color:var(--text-muted);line-height:1.8;">This service stores account details, short-link configuration, click analytics such as IP-derived country, device/browser information, payment records, and security logs to operate the service. Do not submit confidential information in URLs. Administrators should publish a final policy appropriate to their jurisdiction before public launch.</p></div>
+        <% } %>
+
+        <% if (page === 'terms') { %>
+            <div class="brand-center"><h1 style="font-size:2.4rem;">Terms & Acceptable Use</h1></div>
+            <div class="glass-card"><p style="color:var(--text-muted);line-height:1.8;">Users must not use the service for phishing, malware, fraud, illegal content, credential theft, abuse, or attempts to bypass platform/security restrictions. Links may be disabled and accounts may be blocked for abuse. Replace this starter text with legal terms reviewed for your business and jurisdiction before public launch.</p></div>
+        <% } %>
+
+
+        <!-- ===== PLANS PAGE ===== -->
+        <% if (page === 'plans') { %>
+            <div class="brand-center fade-in">
+                <h1 style="font-size:2.4rem;">Plans & Premium</h1>
+                <p>Free users can create up to <%= freeLinkLimit %> links. Premium users get unlimited links.</p>
+                <div style="margin-top:.8rem;">
+                    <span class="status-pill <%= user.isPremium ? 'ok' : 'warn' %>">
+                        <%= user.isPremium ? ('PREMIUM until ' + new Date(user.premiumUntil).toLocaleDateString()) : 'FREE PLAN' %>
+                    </span>
+                </div>
+            </div>
+
+            <div class="plan-grid">
+                <div class="plan-card">
+                    <h3>Free</h3><div class="plan-price">৳0</div>
+                    <p>Up to <%= freeLinkLimit %> short links</p><p>Core analytics</p><p>Custom domains when available</p>
+                </div>
+                <div class="plan-card featured">
+                    <h3>Premium • 1 Month</h3><div class="plan-price">৳<%= plan1Price %></div>
+                    <p>Unlimited short links</p><p>Full analytics</p><p>No link-count limit</p>
+                </div>
+                <div class="plan-card featured">
+                    <h3>Premium • 3 Months</h3><div class="plan-price">৳<%= plan3Price %></div>
+                    <p>Unlimited short links</p><p>Full analytics</p><p>Longer validity</p>
+                </div>
+            </div>
+
+            <div class="glass-card payment-box">
+                <h2>Manual Payment</h2>
+                <p class="tiny-note" style="margin:.5rem 0 1rem;">bKash: <strong><%= bkashNumber %></strong> &nbsp; • &nbsp; Nagad: <strong><%= nagadNumber %></strong></p>
+                <form action="/payments" method="POST" enctype="multipart/form-data">
+                    <div class="form-group"><label>Plan</label><select class="form-control" name="planMonths" required><option value="1">1 Month — ৳<%= plan1Price %></option><option value="3">3 Months — ৳<%= plan3Price %></option></select></div>
+                    <div class="form-group"><label>Payment Method</label><select class="form-control" name="method" required><option value="bkash">bKash</option><option value="nagad">Nagad</option></select></div>
+                    <div class="form-group"><label>Transaction ID</label><input class="form-control" name="transactionId" required placeholder="Enter transaction ID"></div>
+                    <div class="form-group"><label>Payment Screenshot (PNG/JPG/WEBP, max 2MB)</label><input class="form-control" type="file" name="screenshot" accept="image/png,image/jpeg,image/webp" required></div>
+                    <button class="btn btn-primary" type="submit">Submit Payment</button>
+                </form>
+            </div>
+
+            <div class="glass-card">
+                <h2 style="margin-bottom:1rem;">Payment History</h2>
+                <div class="admin-table-wrap"><table class="admin-table" style="min-width:700px;"><thead><tr><th>Date</th><th>Plan</th><th>Method</th><th>Txn ID</th><th>Status</th><th>Note</th></tr></thead><tbody>
+                <% (paymentHistory || []).forEach(function(p){ %>
+                    <tr><td><%= new Date(p.created_at).toLocaleString() %></td><td><%= p.plan_months %> month</td><td><%= p.method %></td><td><%= p.transaction_id %></td>
+                    <td><span class="status-pill <%= p.status==='approved'?'ok':(p.status==='rejected'?'bad':'warn') %>"><%= p.status %></span></td><td><%= p.admin_note || '-' %></td></tr>
+                <% }); %>
+                <% if (!(paymentHistory||[]).length) { %><tr><td colspan="6">No payment requests yet.</td></tr><% } %>
+                </tbody></table></div>
+            </div>
+        <% } %>
+
+        <!-- ===== ADMIN LOGIN ===== -->
+        <% if (page === 'admin-login') { %>
+            <div class="glass-card" style="max-width:500px;margin:3rem auto;">
+                <h2 style="text-align:center;margin-bottom:1rem;">🛡️ Admin Login</h2>
+                <form action="/admin/login" method="POST">
+                    <div class="form-group"><label>Admin Email</label><input class="form-control" type="email" name="email" required></div>
+                    <div class="form-group"><label>Admin Password</label><input class="form-control" type="password" name="password" required></div>
+                    <button class="btn btn-primary" style="width:100%;justify-content:center;" type="submit">Open Admin Panel</button>
+                </form>
+            </div>
+        <% } %>
+
+        <!-- ===== ADMIN PANEL ===== -->
+        <% if (page === 'admin') { %>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;">
+                <div><h1>🛡️ Admin Panel</h1><p style="color:var(--text-muted);">Users, subscriptions, payments, links and platform activity.</p></div>
+                <form action="/admin/logout" method="POST"><button class="btn btn-secondary">Admin Logout</button></form>
+            </div>
+            <div class="admin-grid">
+                <div class="stat-card"><div class="number"><%= adminStats.totalUsers %></div><div class="label">Users</div></div>
+                <div class="stat-card"><div class="number"><%= adminStats.online %></div><div class="label">Online</div></div>
+                <div class="stat-card"><div class="number"><%= adminStats.totalLinks %></div><div class="label">Links</div></div>
+                <div class="stat-card"><div class="number"><%= adminStats.totalClicks %></div><div class="label">Real Clicks</div></div>
+                <div class="stat-card"><div class="number"><%= adminStats.botClicks %></div><div class="label">Bot Clicks</div></div>
+                <div class="stat-card"><div class="number"><%= adminStats.pendingPayments %></div><div class="label">Pending Payments</div></div>
+            </div>
+
+            <div class="glass-card" style="margin-bottom:1.5rem;">
+                <h2 style="margin-bottom:1rem;">Users</h2>
+                <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>ID</th><th>User</th><th>Telegram</th><th>Email</th><th>Plan</th><th>Status</th><th>Links</th><th>Clicks</th><th>Actions</th></tr></thead><tbody>
+                <% adminUsers.forEach(function(u){ %><tr>
+                    <td><%= u.id %></td><td><strong><%= u.displayName || u.username %></strong><br>@<%= u.username %></td><td><%= u.telegramId %></td><td><%= u.email || '-' %></td>
+                    <td><span class="status-pill <%= u.isPremium?'ok':'warn' %>"><%= u.isPremium?'Premium':'Free' %></span><% if(u.premiumUntil){ %><br><small><%= new Date(u.premiumUntil).toLocaleDateString() %></small><% } %></td>
+                    <td><span class="status-pill <%= u.accountStatus==='blocked'?'bad':'ok' %>"><%= u.accountStatus %></span></td><td><%= u.totalLinks %></td><td><%= u.totalClicks %></td>
+                    <td><div class="admin-actions">
+                        <form action="/admin/users/<%= u.id %>/block" method="POST"><button class="btn btn-sm <%= u.accountStatus==='blocked'?'btn-secondary':'btn-danger' %>"><%= u.accountStatus==='blocked'?'Unblock':'Block' %></button></form>
+                        <form action="/admin/users/<%= u.id %>/plan" method="POST"><select name="months"><option value="0">Free</option><option value="1">+1 Month</option><option value="3">+3 Months</option><option value="6">+6 Months</option><option value="12">+12 Months</option></select><button class="btn btn-sm btn-primary">Set</button></form>
+                        <form action="/admin/users/<%= u.id %>/delete" method="POST" onsubmit="return confirm('Delete this user and all their links/clicks/payments?')"><button class="btn btn-sm btn-danger">Delete User</button></form>
+                    </div></td>
+                </tr><% }); %>
+                </tbody></table></div>
+            </div>
+
+            <div class="glass-card" style="margin-bottom:1.5rem;">
+                <h2 style="margin-bottom:1rem;">Payments</h2>
+                <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>ID</th><th>User</th><th>Plan</th><th>Amount</th><th>Method</th><th>Txn</th><th>Proof</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+                <% adminPayments.forEach(function(p){ %><tr>
+                    <td><%= p.id %></td><td><strong><%= p.display_name || p.username %></strong><br><%= p.email || '' %></td><td><%= p.plan_months %> mo</td><td>৳<%= p.amount %></td><td><%= p.method %></td><td><%= p.transaction_id %></td>
+                    <td><a class="btn btn-sm btn-secondary" href="/admin/payments/<%= p.id %>/screenshot" target="_blank">View</a></td>
+                    <td><span class="status-pill <%= p.status==='approved'?'ok':(p.status==='rejected'?'bad':'warn') %>"><%= p.status %></span></td>
+                    <td><div class="admin-actions"><form action="/admin/payments/<%= p.id %>/approve" method="POST"><button class="btn btn-sm btn-primary" <%= p.status==='approved'?'disabled':'' %>>Approve</button></form><form action="/admin/payments/<%= p.id %>/reject" method="POST"><button class="btn btn-sm btn-danger">Reject</button></form></div></td>
+                </tr><% }); %>
+                <% if(!adminPayments.length){ %><tr><td colspan="9">No payments yet.</td></tr><% } %>
+                </tbody></table></div>
+            </div>
+
+
+            <div class="glass-card" style="margin-bottom:1.5rem;">
+                <div style="display:flex;justify-content:space-between;gap:1rem;align-items:center;flex-wrap:wrap;">
+                    <div><h2>🌐 Domain Manager</h2><p style="color:var(--text-muted);">Disable a custom domain or place it in maintenance mode.</p></div>
+                    <form method="POST" action="/admin/domains/check"><button class="btn btn-secondary">Run Health Check</button></form>
+                </div>
+                <div class="admin-table-wrap" style="margin-top:1rem;"><table class="admin-table"><thead><tr><th>Domain</th><th>Enabled</th><th>Maintenance</th><th>Health</th><th>Checked</th><th>Actions</th></tr></thead><tbody>
+                <% (adminDomains||[]).forEach(function(d){ %><tr><td><strong><%= d.domain %></strong></td><td><%= d.enabled?'Yes':'No' %></td><td><%= d.maintenance?'Yes':'No' %></td><td><%= d.last_health %></td><td><%= d.last_checked_at?new Date(d.last_checked_at).toLocaleString():'Never' %></td><td><div class="admin-actions"><form method="POST" action="/admin/domains/<%= d.domain %>/toggle"><button class="btn btn-sm btn-secondary" <%= d.domain===baseDomain?'disabled':'' %>>Enable/Disable</button></form><form method="POST" action="/admin/domains/<%= d.domain %>/maintenance"><button class="btn btn-sm btn-warning">Maintenance</button></form></div></td></tr><% }); %>
+                </tbody></table></div>
+            </div>
+
+            <div class="glass-card" style="margin-bottom:1.5rem;">
+                <div style="display:flex;justify-content:space-between;gap:1rem;align-items:center;flex-wrap:wrap;"><div><h2>💾 Database Snapshots</h2><p style="color:var(--text-muted);">App-level snapshots are kept in PostgreSQL. Also enable Railway backups for disaster recovery.</p></div><form method="POST" action="/admin/backup/create"><button class="btn btn-primary">Create Snapshot</button></form></div>
+                <div class="admin-table-wrap" style="margin-top:1rem;"><table class="admin-table"><thead><tr><th>ID</th><th>Date</th><th>Created By</th><th>Download</th></tr></thead><tbody>
+                <% (adminBackups||[]).forEach(function(b){ %><tr><td><%= b.id %></td><td><%= new Date(b.created_at).toLocaleString() %></td><td><%= b.created_by %></td><td><a class="btn btn-sm btn-secondary" href="/admin/backup/<%= b.id %>/download">JSON</a></td></tr><% }); %>
+                <% if(!(adminBackups||[]).length){ %><tr><td colspan="4">No snapshots yet.</td></tr><% } %>
+                </tbody></table></div>
+            </div>
+
+            <div class="glass-card" style="margin-bottom:1.5rem;">
+                <h2 style="margin-bottom:1rem;">🧾 Admin Audit Log</h2>
+                <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Date</th><th>Admin</th><th>Action</th><th>Target</th><th>Details</th><th>IP</th></tr></thead><tbody>
+                <% (adminAudit||[]).forEach(function(a){ %><tr><td><%= new Date(a.created_at).toLocaleString() %></td><td><%= a.admin_email %></td><td><%= a.action %></td><td><%= a.target_type %> <%= a.target_id %></td><td><%= a.details %></td><td><%= a.ip_address %></td></tr><% }); %>
+                </tbody></table></div>
+            </div>
+
+            <div class="glass-card">
+                <h2 style="margin-bottom:1rem;">Recent Links</h2>
+                <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>ID</th><th>User</th><th>Short URL</th><th>Destination</th><th>Clicks</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+                <% adminLinks.forEach(function(l){ var su='https://'+l.selected_domain+'/'+l.short_code; %><tr>
+                    <td><%= l.id %></td><td><%= l.display_name || l.username %></td><td><a href="<%= su %>" target="_blank"><%= su %></a></td><td style="max-width:320px;word-break:break-all;"><%= l.original_url %></td><td><%= l.clicks %></td><td><%= l.is_active?'Active':'Disabled' %></td>
+                    <td><div class="admin-actions"><form action="/admin/links/<%= l.id %>/toggle" method="POST"><button class="btn btn-sm btn-secondary">Toggle</button></form><form action="/admin/links/<%= l.id %>/delete" method="POST" onsubmit="return confirm('Delete this link?')"><button class="btn btn-sm btn-danger">Delete</button></form></div></td>
+                </tr><% }); %>
+                </tbody></table></div>
             </div>
         <% } %>
 
@@ -1230,6 +1522,7 @@
 
     <footer class="footer">
         <p>🔗 This Person Is brand Shortlink &bull; <span class="heart">❤️</span> &bull; Powered by <a href="https://t.me/thispersonisbrand537" target="_blank" rel="noopener noreferrer">@thispersonisbrand537</a></p>
+        <p style="font-size: 0.75rem; margin-top: 0.5rem; opacity: 0.7;"><a href="/faq">FAQ</a> &bull; <a href="/privacy">Privacy</a> &bull; <a href="/terms">Terms</a></p>
         <p style="font-size: 0.75rem; margin-top: 0.5rem; opacity: 0.5;">© 2026 All rights reserved &bull; ♾️ Unlimited Short Links</p>
     </footer>
 
@@ -1703,6 +1996,19 @@
         });
 
         setInterval(updateCurrentTime, 1000);
+
+
+        async function generateQRForDomain(shortCode, domain) {
+            try {
+                var response = await fetch('/qr/' + encodeURIComponent(shortCode) + '?domain=' + encodeURIComponent(domain));
+                var data = await response.json();
+                if (!data.qr) return showToast(data.error || 'QR generation failed', 'error');
+                var win = window.open('', '_blank');
+                if (!win) return showToast('Popup blocked. Allow popups to view QR.', 'error');
+                win.document.write('<!doctype html><title>QR Code</title><body style="font-family:Arial;text-align:center;padding:30px;background:#111;color:white"><h2>QR Code</h2><img style="max-width:90vw;border-radius:16px" src="' + data.qr + '"><p style="word-break:break-all">' + data.url + '</p></body>');
+                win.document.close();
+            } catch (e) { showToast('QR generation failed', 'error'); }
+        }
 
         // ===== TOAST =====
         function showToast(message, type, duration) {
