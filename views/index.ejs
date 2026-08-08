@@ -1032,7 +1032,586 @@
             .features-grid { grid-template-columns: 1fr 1fr; gap: 0.8rem; }
             .feature-card { padding: 1rem; }
         }
-    </style>
+    
+        /* ===== V7.2 ICON / TEXT / BUTTON VISIBILITY FIX ===== */
+
+        /* Global readable text */
+        body, .container, .navbar, .glass-card, .link-card, .stat-card,
+        .feature-card, .modal-content, .dropdown-menu, .admin-table,
+        .admin-table th, .admin-table td {
+            color: var(--text) !important;
+        }
+
+        p, label, small, .label, .tiny-note, .link-original,
+        .profile-item-label, .plan-usage-sub, .plan-usage-expiry {
+            opacity: 1 !important;
+        }
+
+        /* Navigation text and icons */
+        .navbar a,
+        .navbar button,
+        .nav-links a,
+        .user-profile-btn,
+        .dropdown-item {
+            color: #F7FAFF !important;
+            opacity: 1 !important;
+        }
+
+        .nav-links a {
+            font-weight: 700 !important;
+        }
+
+        .dropdown-item {
+            display: flex !important;
+            align-items: center !important;
+            gap: .75rem !important;
+            min-height: 42px !important;
+        }
+
+        /* Font Awesome icons everywhere */
+        i,
+        .fa,
+        .fas,
+        .far,
+        .fab,
+        [class^="fa-"],
+        [class*=" fa-"] {
+            color: currentColor !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            min-width: 1.1em !important;
+            line-height: 1 !important;
+        }
+
+        /* Inline SVG icons everywhere */
+        svg,
+        .telegram-inline-icon,
+        .facebook-inline-icon,
+        .whatsapp-inline-icon {
+            display: inline-block !important;
+            width: 1.15em !important;
+            height: 1.15em !important;
+            min-width: 1.15em !important;
+            flex: 0 0 auto !important;
+            color: currentColor !important;
+            fill: currentColor !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            vertical-align: -0.15em !important;
+        }
+
+        svg path {
+            fill: currentColor;
+        }
+
+        /* Dashboard / navigation icon emphasis */
+        .nav-links a[href="/dashboard"],
+        .nav-links a[href="/shorten-page"],
+        .nav-links a[href="/api-access"],
+        .nav-links a[href="/notifications"],
+        .nav-links a[href="/plans"],
+        .nav-links a[href="/admin"] {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Buttons: never let shine overlay hide text/icon */
+        .btn,
+        button,
+        .copy-btn {
+            color: #FFFFFF !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            isolation: isolate;
+        }
+
+        .btn > *,
+        button > *,
+        .copy-btn > * {
+            position: relative;
+            z-index: 2;
+            color: inherit !important;
+            opacity: 1 !important;
+        }
+
+        .btn::after {
+            z-index: 0 !important;
+            pointer-events: none !important;
+        }
+
+        .btn-primary {
+            color: #FFFFFF !important;
+        }
+
+        .btn-secondary {
+            color: #F3F7FF !important;
+            background: rgba(255,255,255,.085) !important;
+            border-color: rgba(255,255,255,.18) !important;
+        }
+
+        .btn-warning {
+            color: #17120A !important;
+            background: #FFCB5C !important;
+        }
+
+        .btn-danger {
+            color: #FFFFFF !important;
+        }
+
+        .btn-telegram {
+            color: #FFFFFF !important;
+        }
+
+        /* Dashboard headings and stat labels */
+        .stat-card .number {
+            opacity: 1 !important;
+            filter: none !important;
+        }
+
+        .stat-card .label,
+        .analytics-stats .stat-item .label,
+        .analytics-stats .stat-item .value,
+        .country-item,
+        .country-name,
+        .plan-usage-title {
+            color: #F1F5FF !important;
+            opacity: 1 !important;
+        }
+
+        .analytics-stats .stat-item .label,
+        .plan-usage-sub,
+        .plan-usage-expiry,
+        .link-original {
+            color: #C7D2ED !important;
+        }
+
+        /* Links */
+        a {
+            text-decoration-thickness: 1px;
+            text-underline-offset: 3px;
+        }
+
+        .link-url,
+        .short-link-display .link,
+        .footer a {
+            color: #8FEAFF !important;
+            opacity: 1 !important;
+        }
+
+        /* Inputs/selects */
+        .form-control,
+        input,
+        select,
+        textarea {
+            color: #FFFFFF !important;
+            caret-color: #FFFFFF !important;
+            opacity: 1 !important;
+        }
+
+        .form-control::placeholder,
+        input::placeholder,
+        textarea::placeholder {
+            color: #AEB9D4 !important;
+            opacity: .9 !important;
+        }
+
+        select option {
+            color: #FFFFFF !important;
+            background: #161D36 !important;
+        }
+
+        select option:disabled {
+            color: #A9B2C8 !important;
+        }
+
+        /* Profile / dropdown readability */
+        .user-name,
+        .profile-item-value,
+        .profile-content,
+        .dropdown-item span {
+            color: #FFFFFF !important;
+            opacity: 1 !important;
+        }
+
+        /* Admin controls and tables */
+        .admin-table th {
+            color: #EAF0FF !important;
+        }
+
+        .admin-table td {
+            color: #DDE6FA !important;
+        }
+
+        .admin-actions .btn {
+            min-height: 34px;
+        }
+
+        /* Alerts */
+        .alert {
+            color: #FFFFFF !important;
+            opacity: 1 !important;
+        }
+
+        /* Keep emoji/symbol icons from becoming too faint */
+        .logo-icon,
+        .plan-usage-icon,
+        .country-flag,
+        .feature-icon,
+        .social-icon {
+            opacity: 1 !important;
+            filter: none !important;
+        }
+
+        /* Mobile: do not squash icons/text */
+        @media (max-width: 768px) {
+            .nav-links a,
+            .dropdown-item,
+            .btn {
+                font-size: .9rem !important;
+            }
+
+            .btn,
+            .dropdown-item {
+                white-space: normal !important;
+            }
+
+            svg,
+            i,
+            .fas,
+            .far,
+            .fab {
+                flex-shrink: 0 !important;
+            }
+        }
+
+
+        /* ===== V7.3 CLEAN ADMIN CONTROL CENTER ===== */
+        .admin-navbar {
+            width:calc(100% - 32px);
+            max-width:1540px;
+            margin:16px auto 0;
+            padding:.9rem 1.1rem;
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:1rem;
+            flex-wrap:wrap;
+            background:linear-gradient(135deg,rgba(13,22,49,.95),rgba(20,30,63,.92));
+            border:1px solid rgba(124,92,255,.26);
+            border-radius:20px;
+            box-shadow:0 18px 55px rgba(0,0,0,.34);
+            backdrop-filter:blur(22px);
+            position:sticky;
+            top:12px;
+            z-index:1000;
+        }
+        .admin-brand{display:flex;align-items:center;gap:.8rem}
+        .admin-brand-icon{
+            width:46px;height:46px;border-radius:15px;
+            display:flex;align-items:center;justify-content:center;
+            font-size:1.15rem;color:#fff;
+            background:linear-gradient(135deg,#7C5CFF,#27D7FF);
+            box-shadow:0 10px 28px rgba(91,140,255,.28)
+        }
+        .admin-brand-title{font-family:'Manrope',sans-serif;font-size:1rem;font-weight:800;color:#fff;letter-spacing:.01em}
+        .admin-brand-sub{font-size:.68rem;font-weight:800;letter-spacing:.16em;color:#8FEAFF;margin-top:.1rem}
+        .admin-navbar-actions{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap}
+        .admin-navbar-actions form{margin:0}
+        .admin-secure-pill{
+            display:inline-flex;align-items:center;gap:.45rem;
+            padding:.48rem .72rem;border-radius:999px;
+            background:rgba(51,230,161,.08);border:1px solid rgba(51,230,161,.20);
+            color:#8CFFD1;font-size:.75rem;font-weight:700
+        }
+
+        .admin-page-heading{
+            margin-bottom:1.4rem;
+            padding:1.2rem 1.25rem;
+            border-radius:18px;
+            background:linear-gradient(135deg,rgba(124,92,255,.09),rgba(39,215,255,.045));
+            border:1px solid rgba(255,255,255,.08)
+        }
+        .admin-page-heading h1{font-family:'Manrope',sans-serif;font-size:2rem;color:#fff;margin:.25rem 0}
+        .admin-page-heading p{color:#B9C7E6!important;margin:0}
+        .admin-eyebrow{font-size:.68rem;font-weight:800;letter-spacing:.18em;color:#8FEAFF}
+
+        /* Admin table visibility: never use browser visited-link purple/blue */
+        .admin-table-wrap{background:#111A35!important;border:1px solid rgba(255,255,255,.12)!important}
+        .admin-table th{background:#172343!important;color:#F4F7FF!important}
+        .admin-table td{background:rgba(20,31,62,.72)!important;color:#EAF0FF!important}
+        .admin-table tr:nth-child(even) td{background:rgba(27,40,77,.70)!important}
+        .admin-table tr:hover td{background:rgba(46,59,108,.72)!important}
+
+        .admin-short-url,
+        .admin-short-url:visited,
+        .admin-short-url:hover,
+        .admin-short-url:active{
+            display:inline-flex!important;
+            align-items:flex-start!important;
+            gap:.45rem!important;
+            max-width:330px;
+            color:#73E6FF!important;
+            text-decoration:none!important;
+            font-weight:800!important;
+            word-break:break-all!important;
+            opacity:1!important
+        }
+        .admin-short-url:hover{color:#C0F6FF!important;text-decoration:underline!important}
+        .admin-short-url span{color:inherit!important}
+        .admin-user-cell{color:#FFFFFF!important}
+        .admin-destination{
+            max-width:390px;
+            color:#D4DDF1!important;
+            line-height:1.4;
+            word-break:break-all;
+            opacity:1!important
+        }
+        .admin-domain-name{color:#FFFFFF!important;font-weight:800}
+
+        .domain-state-pill{
+            display:inline-flex;
+            align-items:center;
+            gap:.32rem;
+            padding:.34rem .62rem;
+            border-radius:999px;
+            font-size:.72rem;
+            font-weight:800;
+            white-space:nowrap;
+            opacity:1!important
+        }
+        .domain-state-pill.active{color:#8CFFD1!important;background:rgba(51,230,161,.11);border:1px solid rgba(51,230,161,.28)}
+        .domain-state-pill.maintenance{color:#FFE08A!important;background:rgba(255,203,92,.11);border:1px solid rgba(255,203,92,.32)}
+        .domain-state-pill.coming{color:#C1CCDE!important;background:rgba(170,184,210,.08);border:1px solid rgba(170,184,210,.20)}
+        .health-text{color:#B9E9FF!important;font-weight:700}
+
+        .domain-notice-panel{
+            grid-column:1/-1;
+            margin-top:-.15rem;
+            padding:.85rem 1rem;
+            border-radius:14px;
+            background:rgba(255,203,92,.055);
+            border:1px solid rgba(255,203,92,.16)
+        }
+        .domain-notice-title{font-size:.78rem;font-weight:800;color:#FFE08A;margin-bottom:.55rem}
+        .domain-notice-list{display:flex;gap:.5rem;flex-wrap:wrap}
+        .domain-notice-item{
+            display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;
+            padding:.45rem .55rem;border-radius:11px;
+            background:rgba(0,0,0,.12);border:1px solid rgba(255,255,255,.07)
+        }
+        .domain-notice-name{font-size:.78rem;font-weight:700;color:#F1F5FF}
+
+        .admin-footer{
+            width:calc(100% - 32px);
+            max-width:1540px;
+            margin:2rem auto 18px;
+            padding:1rem 1.2rem;
+            display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;
+            border-radius:16px;
+            background:rgba(10,17,38,.75);
+            border:1px solid rgba(255,255,255,.08);
+            color:#9DAECC;font-size:.75rem
+        }
+
+        @media(max-width:780px){
+            .admin-navbar{width:calc(100% - 20px);margin-top:10px;position:relative;top:0}
+            .admin-navbar-actions{width:100%}
+            .admin-navbar-actions .btn,.admin-navbar-actions form{flex:1}
+            .admin-navbar-actions form .btn{width:100%;justify-content:center}
+            .admin-secure-pill{width:100%;justify-content:center}
+            .admin-table{min-width:900px}
+        }
+
+
+        /* ===== V7.4 PREMIUM APP DASHBOARD ===== */
+        body:has(.dashboard-app-shell) .container {
+            max-width: 1500px;
+            padding-top: 1.3rem;
+        }
+        .dashboard-app-shell {
+            display:grid;
+            grid-template-columns:245px minmax(0,1fr);
+            gap:1rem;
+            align-items:start;
+        }
+        .premium-sidebar {
+            position:sticky;
+            top:105px;
+            min-height:calc(100vh - 135px);
+            padding:1rem;
+            border-radius:24px;
+            background:linear-gradient(180deg,rgba(19,29,62,.92),rgba(11,18,40,.90));
+            border:1px solid rgba(255,255,255,.10);
+            box-shadow:0 24px 65px rgba(0,0,0,.30);
+            backdrop-filter:blur(24px);
+            display:flex;
+            flex-direction:column;
+        }
+        .sidebar-user {
+            display:flex;align-items:center;gap:.7rem;
+            padding:.6rem .45rem 1rem;border-bottom:1px solid rgba(255,255,255,.08)
+        }
+        .sidebar-avatar{
+            width:44px;height:44px;border-radius:15px;overflow:hidden;
+            background:linear-gradient(135deg,#7C5CFF,#27D7FF);
+            display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;
+            box-shadow:0 8px 24px rgba(124,92,255,.24)
+        }
+        .sidebar-avatar img{width:100%;height:100%;object-fit:cover}
+        .sidebar-user-meta{display:flex;flex-direction:column;min-width:0}
+        .sidebar-user-meta strong{font-size:.86rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .sidebar-user-meta span{font-size:.68rem;margin-top:.12rem;font-weight:700}
+        .premium-text{color:#FFE08A}.free-text{color:#9EC8FF}
+
+        .sidebar-menu{display:flex;flex-direction:column;gap:.28rem;margin:1rem 0}
+        .sidebar-menu a,.sidebar-menu button{
+            width:100%;display:grid;grid-template-columns:22px 1fr auto;align-items:center;
+            gap:.55rem;padding:.7rem .72rem;border-radius:13px;
+            color:#BFCBE5!important;background:transparent;border:0;text-decoration:none;
+            font-family:inherit;font-size:.81rem;font-weight:700;text-align:left;cursor:pointer
+        }
+        .sidebar-menu a:hover,.sidebar-menu button:hover,.sidebar-menu a.active{
+            color:#fff!important;background:linear-gradient(90deg,rgba(124,92,255,.17),rgba(39,215,255,.06))
+        }
+        .sidebar-menu a.active{border:1px solid rgba(124,92,255,.20)}
+        .sidebar-menu i{color:#87BFFF!important}
+        .side-tag{
+            padding:.15rem .35rem;border-radius:999px;background:rgba(255,203,92,.12);
+            border:1px solid rgba(255,203,92,.20);color:#FFE08A;font-size:.55rem
+        }
+        .sidebar-plan{
+            margin-top:auto;padding:.9rem;border-radius:16px;
+            display:flex;flex-direction:column;align-items:flex-start;gap:.28rem;
+            background:linear-gradient(135deg,rgba(124,92,255,.12),rgba(39,215,255,.05));
+            border:1px solid rgba(124,92,255,.16)
+        }
+        .sidebar-plan.premium{background:linear-gradient(135deg,rgba(255,203,92,.10),rgba(124,92,255,.09));border-color:rgba(255,203,92,.18)}
+        .sidebar-plan-icon{font-size:1.3rem}
+        .sidebar-plan strong{font-size:.82rem;color:#fff}.sidebar-plan span{font-size:.66rem;color:#AEBBD7}
+        .sidebar-plan a{font-size:.68rem;color:#9EEAFF!important;font-weight:800;margin-top:.1rem}
+        .side-progress{width:100%;height:5px;background:rgba(255,255,255,.07);border-radius:999px;overflow:hidden;margin:.3rem 0}
+        .side-progress i{display:block;height:100%;background:linear-gradient(90deg,#7C5CFF,#27D7FF);border-radius:inherit}
+
+        .premium-dashboard-main{min-width:0}
+        .dashboard-topbar{
+            display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;
+            padding:.4rem .15rem 1.1rem
+        }
+        .dashboard-kicker{font-size:.62rem;letter-spacing:.18em;font-weight:900;color:#83DFFF}
+        .dashboard-topbar h2{font-family:'Manrope',sans-serif;font-size:1.75rem;letter-spacing:-.03em;color:#fff;margin:.2rem 0}
+        .dashboard-topbar h2 span{font-size:1.35rem}
+        .dashboard-topbar p{color:#9EADCC!important;font-size:.82rem;margin:0}
+        .dashboard-top-actions{display:flex;align-items:center;gap:.55rem}
+        .dashboard-icon-btn{
+            width:42px;height:42px;border-radius:13px;display:flex;align-items:center;justify-content:center;
+            background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);color:#DCE7FF!important;text-decoration:none
+        }
+        .dashboard-icon-btn:hover{background:rgba(124,92,255,.12);transform:translateY(-2px)}
+        .create-link-hero-btn{min-height:42px}
+
+        .premium-metric-grid{
+            grid-template-columns:repeat(4,minmax(0,1fr))!important;
+            gap:.8rem!important;
+        }
+        .premium-metric-grid .stat-card{
+            min-height:120px!important;text-align:left!important;padding:1rem!important;
+            justify-content:space-between!important
+        }
+        .premium-metric-grid .stat-card .number{font-size:2rem!important}
+        .metric-label{display:flex;align-items:center;gap:.5rem;font-size:.71rem;font-weight:700;color:#AEBAD5}
+        .metric-icon{
+            width:26px;height:26px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+            background:rgba(124,92,255,.10);border:1px solid rgba(124,92,255,.16);color:#92CAFF
+        }
+        .metric-icon i{font-size:.65rem}
+
+        /* Create popup based on premium ad-style UI */
+        .premium-create-modal{
+            background:rgba(3,7,19,.78)!important;backdrop-filter:blur(16px)!important
+        }
+        .create-link-modal-card{
+            position:relative;max-width:760px!important;padding:0!important;overflow:hidden!important;
+            background:linear-gradient(180deg,#172447 0%,#111A35 100%)!important;
+            border:1px solid rgba(116,181,255,.18)!important;
+            box-shadow:0 40px 110px rgba(0,0,0,.58),0 0 60px rgba(124,92,255,.12)!important
+        }
+        .create-modal-glow{
+            position:absolute;width:300px;height:300px;border-radius:50%;right:-130px;top:-170px;
+            background:radial-gradient(circle,rgba(39,215,255,.22),transparent 65%);pointer-events:none
+        }
+        .create-modal-header{padding:1.5rem 1.6rem 1rem!important;margin:0!important;align-items:flex-start!important}
+        .create-modal-header h2{
+            font-family:'Manrope',sans-serif;font-size:1.65rem!important;
+            background:linear-gradient(90deg,#fff,#93DFFF,#A792FF)!important;
+            -webkit-background-clip:text!important;-webkit-text-fill-color:transparent!important;margin:.25rem 0
+        }
+        .create-modal-header p{font-size:.78rem;color:#A8B6D2!important;margin:0}
+        .create-modal-badge{
+            display:inline-flex;align-items:center;gap:.38rem;padding:.25rem .48rem;border-radius:999px;
+            background:rgba(124,92,255,.10);border:1px solid rgba(124,92,255,.18);
+            color:#C6BBFF;font-size:.56rem;font-weight:900;letter-spacing:.12em
+        }
+        #dashboardShortenForm{padding:0 1.6rem 1.6rem}
+        .create-url-box{
+            display:flex;align-items:center;gap:.7rem;padding:.6rem .75rem;margin-bottom:1rem;
+            background:rgba(7,13,30,.60);border:1px solid rgba(115,211,255,.18);border-radius:16px
+        }
+        .create-url-icon{
+            width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+            background:linear-gradient(135deg,rgba(124,92,255,.20),rgba(39,215,255,.14));color:#91E9FF
+        }
+        .create-url-box input{
+            flex:1;min-width:0;background:transparent!important;border:0!important;outline:0!important;
+            color:#fff!important;font-size:.92rem;padding:.55rem .1rem!important;box-shadow:none!important
+        }
+        .create-modal-grid{
+            display:grid;grid-template-columns:1fr 1fr;gap:.85rem
+        }
+        .create-modal-grid .form-group{margin-bottom:0}
+        .create-modal-grid label{
+            display:flex;align-items:center;gap:.4rem;color:#DCE6FA!important;font-size:.68rem!important;
+            font-weight:800!important;margin-bottom:.38rem!important
+        }
+        .create-modal-grid label span{font-size:.52rem;color:#FFE08A;padding:.1rem .25rem;border:1px solid rgba(255,203,92,.22);border-radius:999px}
+        .create-domain-status{
+            display:flex;align-items:flex-start;gap:.6rem;padding:.7rem .8rem;border-radius:13px;margin-top:.9rem;
+            background:rgba(255,203,92,.055);border:1px solid rgba(255,203,92,.14);color:#FFE08A
+        }
+        .create-domain-status div{display:flex;flex-direction:column}.create-domain-status strong{font-size:.69rem}.create-domain-status span{font-size:.62rem;color:#C6BFA6;margin-top:.1rem}
+        .create-modal-bottom{
+            display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap;
+            margin-top:1rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,.07)
+        }
+        .create-speed-note{display:flex;align-items:center;gap:.55rem;color:#7EF7C7}
+        .create-speed-note>i{width:34px;height:34px;border-radius:11px;background:rgba(51,230,161,.08);border:1px solid rgba(51,230,161,.14);display:flex!important}
+        .create-speed-note span{display:flex;flex-direction:column}.create-speed-note strong{font-size:.68rem;color:#D8FFF0}.create-speed-note small{font-size:.56rem;color:#8CA79B}
+        .create-modal-submit{min-width:160px;justify-content:center}
+
+        @media(max-width:1100px){
+            .dashboard-app-shell{grid-template-columns:200px minmax(0,1fr)}
+            .premium-metric-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+        }
+        @media(max-width:850px){
+            .dashboard-app-shell{display:block}
+            .premium-sidebar{position:relative;top:0;min-height:auto;margin-bottom:1rem}
+            .sidebar-menu{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+            .sidebar-menu a,.sidebar-menu button{grid-template-columns:20px 1fr;padding:.62rem}
+            .sidebar-plan{margin-top:.8rem}
+            .premium-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+        }
+        @media(max-width:600px){
+            .sidebar-menu{grid-template-columns:repeat(2,minmax(0,1fr))}
+            .dashboard-topbar{align-items:flex-start}
+            .dashboard-top-actions{width:100%}.create-link-hero-btn{flex:1;justify-content:center}
+            .create-modal-grid{grid-template-columns:1fr}
+            .create-modal-bottom{align-items:stretch}.create-modal-submit{width:100%}
+            .premium-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+        }
+
+</style>
 </head>
 <body>
     <% if (typeof announcement !== 'undefined' && announcement && announcement.message) { %>
@@ -1052,7 +1631,8 @@
         </div>
     </div>
 
-    <nav class="navbar">
+    <% if (page !== 'admin' && page !== 'admin-login') { %>
+<nav class="navbar">
         <a href="/" class="logo-wrapper">
             <div class="logo-icon">🔗</div>
             <div class="logo-text">
@@ -1064,12 +1644,12 @@
         <div class="nav-links">
             <a href="/">Home</a>
             <% if (typeof user !== 'undefined' && user) { %>
-                <a href="/dashboard">Dashboard</a>
-                <a href="/shorten-page">Short Link</a>
-                <a href="/api-access">API</a>
-                <a href="/notifications">Notifications</a>
-                <a href="/plans">Plans</a>
-                <% if (user.isAdmin) { %><a href="/admin">Admin</a><% } %>
+                <a href="/dashboard"><i class="fas fa-chart-line" aria-hidden="true"></i> Dashboard</a>
+                <a href="/shorten-page"><i class="fas fa-link" aria-hidden="true"></i> Short Link</a>
+                <a href="/api-access"><i class="fas fa-code" aria-hidden="true"></i> API</a>
+                <a href="/notifications"><i class="fas fa-bell" aria-hidden="true"></i> Notifications</a>
+                <a href="/plans"><i class="fas fa-crown" aria-hidden="true"></i> Plans</a>
+                <% if (user.isAdmin) { %><a href="/admin"><i class="fas fa-shield-halved" aria-hidden="true"></i> Admin</a><% } %>
             <% } %>
 
             <span class="live-counter">
@@ -1116,6 +1696,24 @@
             <% } %>
         </div>
     </nav>
+<% } else if (page === 'admin') { %>
+    <nav class="admin-navbar">
+        <div class="admin-brand">
+            <div class="admin-brand-icon"><i class="fas fa-shield-halved"></i></div>
+            <div>
+                <div class="admin-brand-title">THIS PERSON IS BRAND</div>
+                <div class="admin-brand-sub">ADMIN CONTROL CENTER</div>
+            </div>
+        </div>
+        <div class="admin-navbar-actions">
+            <span class="admin-secure-pill"><i class="fas fa-lock"></i> Secure Admin Session</span>
+            <a href="/" target="_blank" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-up-right-from-square"></i> View Website</a>
+            <form action="/admin/logout" method="POST">
+                <button class="btn btn-danger btn-sm"><i class="fas fa-right-from-bracket"></i> Admin Logout</button>
+            </form>
+        </div>
+    </nav>
+<% } %>
 
     <div class="container">
 
@@ -1333,17 +1931,54 @@
 
         <!-- ===== DASHBOARD PAGE ===== -->
         <% if (page === 'dashboard') { %>
-            <div class="fade-in">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; flex-wrap: wrap; gap: 1rem;">
-                    <div>
-                        <h2 style="font-size: 2rem; font-weight: 800; background: linear-gradient(135deg, var(--text), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">📊 Dashboard</h2>
-                        <% if (user && user.isPremium) { %>
-                            <span class="plan-status-badge premium">👑 PREMIUM USER</span>
+            <div class="fade-in dashboard-app-shell">
+                <aside class="premium-sidebar">
+                    <div class="sidebar-user">
+                        <div class="sidebar-avatar">
+                            <% if (user.profilePhoto) { %><img src="<%= user.profilePhoto %>" alt=""><% } else { %><%= (user.displayName||user.firstName||user.username||'U').charAt(0).toUpperCase() %><% } %>
+                        </div>
+                        <div class="sidebar-user-meta">
+                            <strong><%= user.displayName || user.firstName || user.username || 'User' %></strong>
+                            <span class="<%= user.isPremium ? 'premium-text' : 'free-text' %>"><%= user.isPremium ? '👑 Premium Account' : 'Free Account' %></span>
+                        </div>
+                    </div>
+
+                    <nav class="sidebar-menu">
+                        <a class="active" href="/dashboard"><i class="fas fa-chart-pie"></i><span>Overview</span></a>
+                        <button type="button" onclick="openCreateLinkModal()"><i class="fas fa-plus"></i><span>Create Link</span></button>
+                        <a href="/shorten-page"><i class="fas fa-link"></i><span>My Short Links</span></a>
+                        <a href="/api-access"><i class="fas fa-code"></i><span>API Access</span><span class="side-tag">PRO</span></a>
+                        <a href="/notifications"><i class="fas fa-bell"></i><span>Notifications</span></a>
+                        <a href="/plans"><i class="fas fa-crown"></i><span>Plans</span></a>
+                        <% if (user.isAdmin) { %><a href="/admin"><i class="fas fa-shield-halved"></i><span>Admin</span></a><% } %>
+                    </nav>
+
+                    <div class="sidebar-plan <%= user.isPremium ? 'premium' : 'free' %>">
+                        <div class="sidebar-plan-icon"><%= user.isPremium ? '👑' : '⚡' %></div>
+                        <strong><%= user.isPremium ? 'Premium Power' : 'Free Plan' %></strong>
+                        <% if(user.isPremium){ %>
+                            <span>Unlimited short links</span>
+                            <div class="side-progress"><i style="width:100%"></i></div>
                         <% } else { %>
-                            <span class="plan-status-badge free">FREE PLAN</span>
+                            <span><%= typeof linkUsage !== 'undefined' ? linkUsage : 0 %> / <%= typeof freeLinkLimit !== 'undefined' ? freeLinkLimit : 5 %> links used</span>
+                            <% var sidePct=Math.min(100,Math.round(((typeof linkUsage!=='undefined'?linkUsage:0)/(typeof freeLinkLimit!=='undefined'?freeLinkLimit:5))*100)); %>
+                            <div class="side-progress"><i style="width:<%= sidePct %>%"></i></div>
+                            <a href="/plans">Upgrade Now</a>
                         <% } %>
                     </div>
-                    <a href="/shorten-page" class="btn btn-primary">+ Create New Link</a>
+                </aside>
+
+                <main class="premium-dashboard-main">
+                <div class="dashboard-topbar">
+                    <div>
+                        <div class="dashboard-kicker">WELCOME BACK</div>
+                        <h2><%= user.displayName || user.firstName || user.username || 'User' %> <span>👋</span></h2>
+                        <p>Track performance, manage short links and grow your reach from one place.</p>
+                    </div>
+                    <div class="dashboard-top-actions">
+                        <a href="/notifications" class="dashboard-icon-btn" title="Notifications"><i class="fas fa-bell"></i></a>
+                        <button type="button" class="btn btn-primary create-link-hero-btn" onclick="openCreateLinkModal()"><i class="fas fa-plus"></i> Create New Link</button>
+                    </div>
                 </div>
 
                 <div class="plan-usage-card <%= user && user.isPremium ? 'premium' : 'free' %>">
@@ -1371,42 +2006,42 @@
                     <% } %>
                 </div>
 
-                <div class="stats-grid">
+                <div class="stats-grid premium-metric-grid">
                     <div class="stat-card">
                         <div class="number"><%= typeof links !== 'undefined' && links ? links.length : 0 %></div>
-                        <div class="label">Total Links</div>
+                        <div class="metric-label"><span class="metric-icon"><i class="fas fa-link"></i></span><span>Total Links</span></div>
                     </div>
                     <div class="stat-card">
                         <div class="number"><%= typeof totalClicks !== 'undefined' ? totalClicks : 0 %></div>
-                        <div class="label">Total Clicks</div>
+                        <div class="metric-label"><span class="metric-icon"><i class="fas fa-arrow-pointer"></i></span><span>Total Clicks</span></div>
                     </div>
                     <div class="stat-card">
                         <div class="number"><%= typeof todayClicks !== 'undefined' ? todayClicks : 0 %></div>
-                        <div class="label">Today</div>
+                        <div class="metric-label"><span class="metric-icon"><i class="fas fa-bolt"></i></span><span>Today</span></div>
                     </div>
                     <div class="stat-card">
                         <div class="number"><%= typeof yesterdayClicks !== 'undefined' ? yesterdayClicks : 0 %></div>
-                        <div class="label">Yesterday</div>
+                        <div class="metric-label"><span class="metric-icon"><i class="fas fa-clock-rotate-left"></i></span><span>Yesterday</span></div>
                     </div>
                     <div class="stat-card">
                         <div class="number"><%= typeof uniqueClicks !== 'undefined' ? uniqueClicks : 0 %></div>
-                        <div class="label">Unique Visitors</div>
+                        <div class="metric-label"><span class="metric-icon"><i class="fas fa-users"></i></span><span>Unique Visitors</span></div>
                     </div>
                     <div class="stat-card">
                         <div class="number"><%= typeof yearClicks !== 'undefined' ? yearClicks : 0 %></div>
-                        <div class="label">This Year</div>
+                        <div class="metric-label"><span class="metric-icon"><i class="fas fa-calendar"></i></span><span>This Year</span></div>
                     </div>
                     <div class="stat-card">
                         <div class="number"><%= typeof weekClicks !== 'undefined' ? weekClicks : 0 %></div>
-                        <div class="label">This Week</div>
+                        <div class="metric-label"><span class="metric-icon"><i class="fas fa-chart-line"></i></span><span>This Week</span></div>
                     </div>
                     <div class="stat-card">
                         <div class="number"><%= typeof monthClicks !== 'undefined' ? monthClicks : 0 %></div>
-                        <div class="label">This Month</div>
+                        <div class="metric-label"><span class="metric-icon"><i class="fas fa-calendar-days"></i></span><span>This Month</span></div>
                     </div>
                     <div class="stat-card">
                         <div class="number"><%= typeof onlineUsers !== 'undefined' ? onlineUsers : 0 %></div>
-                        <div class="label">Online Users</div>
+                        <div class="metric-label"><span class="metric-icon"><i class="fas fa-signal"></i></span><span>Online Users</span></div>
                     </div>
                 </div>
 
@@ -1664,6 +2299,72 @@
                     </div>
                 <% } %>
             </div>
+
+                </main>
+
+                <!-- Premium Create Short Link Popup -->
+                <div id="createLinkModal" class="modal-overlay premium-create-modal" aria-hidden="true">
+                    <div class="modal-content create-link-modal-card">
+                        <div class="create-modal-glow"></div>
+                        <div class="modal-header create-modal-header">
+                            <div>
+                                <div class="create-modal-badge"><i class="fas fa-wand-magic-sparkles"></i> SMART SHORTENER</div>
+                                <h2>Create a Short Link</h2>
+                                <p>Paste your long URL, pick a branded domain and publish instantly.</p>
+                            </div>
+                            <button class="modal-close" type="button" onclick="closeCreateLinkModal()" aria-label="Close">×</button>
+                        </div>
+
+                        <form action="/shorten" method="POST" id="dashboardShortenForm">
+                            <div class="create-url-box">
+                                <div class="create-url-icon"><i class="fas fa-link"></i></div>
+                                <input type="url" name="originalUrl" placeholder="https://example.com/your-long-link" required>
+                            </div>
+
+                            <div class="create-modal-grid">
+                                <div class="form-group">
+                                    <label><i class="fas fa-globe"></i> Short Domain</label>
+                                    <select class="form-control" name="domain" required>
+                                        <% if(typeof domainChoices!=='undefined' && domainChoices && domainChoices.length){ %>
+                                            <% domainChoices.forEach(function(d){ %>
+                                                <option value="<%= d.domain %>" <%= d.selectable?'':'disabled' %>><%= d.domain %><%= d.selectable?'':(d.maintenance?' — Maintenance • Coming Soon':' — Coming Soon') %></option>
+                                            <% }); %>
+                                        <% } else { %>
+                                            <% (availableDomains||[]).forEach(function(domain){ %><option value="<%= domain %>"><%= domain %></option><% }); %>
+                                        <% } %>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label><i class="fas fa-pen"></i> Custom Path</label>
+                                    <input class="form-control" type="text" name="customSlug" maxlength="48" pattern="[A-Za-z0-9_-]+" placeholder="my-brand-link">
+                                </div>
+                                <div class="form-group">
+                                    <label><i class="fas fa-hourglass-half"></i> Expiry</label>
+                                    <select class="form-control" name="expiresIn">
+                                        <option value="">Never</option><option value="1">1 Day</option><option value="7">7 Days</option><option value="30">30 Days</option><option value="90">90 Days</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label><i class="fas fa-lock"></i> Password <span>Premium</span></label>
+                                    <input class="form-control" type="password" name="linkPassword" minlength="4" maxlength="100" placeholder="Optional password">
+                                </div>
+                            </div>
+
+                            <% if(typeof domainChoices!=='undefined' && domainChoices && domainChoices.some(function(d){return !d.selectable;})){ %>
+                                <div class="create-domain-status">
+                                    <i class="fas fa-circle-info"></i>
+                                    <div><strong>Domain notice</strong><span>Maintenance/Coming Soon domains are visible but cannot be selected yet.</span></div>
+                                </div>
+                            <% } %>
+
+                            <div class="create-modal-bottom">
+                                <div class="create-speed-note"><i class="fas fa-bolt"></i><span><strong>Fast 302 Redirect</strong><small>Analytics + bot detection included</small></span></div>
+                                <button type="submit" class="btn btn-primary create-modal-submit"><i class="fas fa-rocket"></i> Shorten Now</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
         <% } %>
 
         <!-- ===== SHORT LINK PAGE ===== -->
@@ -1687,6 +2388,19 @@
                                   <% (availableDomains || []).forEach(function(domain){ %><option value="<%= domain %>"><%= domain %></option><% }); %>
                                 <% } %>
                               </select></div>
+                            <% if (typeof domainChoices !== 'undefined' && domainChoices && domainChoices.some(function(d){ return !d.selectable; })) { %>
+                                <div class="domain-notice-panel">
+                                    <div class="domain-notice-title"><i class="fas fa-circle-info"></i> Domain Status</div>
+                                    <div class="domain-notice-list">
+                                        <% domainChoices.filter(function(d){ return !d.selectable; }).forEach(function(d){ %>
+                                            <div class="domain-notice-item">
+                                                <span class="domain-notice-name"><%= d.domain %></span>
+                                                <span class="domain-state-pill <%= d.maintenance?'maintenance':'coming' %>"><%= d.maintenance?'🛠 Maintenance • Coming Soon':'⏳ Coming Soon' %></span>
+                                            </div>
+                                        <% }); %>
+                                    </div>
+                                </div>
+                            <% } %>
                             <div class="form-group"><label>Custom Path (optional)</label><input type="text" class="form-control" name="customSlug" maxlength="48" pattern="[A-Za-z0-9_-]+" placeholder="my-link"></div>
                             <div class="form-group"><label>Expiry</label><select class="form-control" name="expiresIn"><option value="">Never</option><option value="1">1 Day</option><option value="7">7 Days</option><option value="30">30 Days</option><option value="90">90 Days</option></select></div>
                             <div class="form-group"><label>Password (Premium, optional)</label><input type="password" class="form-control" name="linkPassword" minlength="4" maxlength="100" placeholder="Protect this short link"></div>
@@ -1856,9 +2570,12 @@
 
         <!-- ===== ADMIN PANEL ===== -->
         <% if (page === 'admin') { %>
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;">
-                <div><h1>🛡️ Admin Control Center</h1><p style="color:var(--text-muted);">Users, subscriptions, payments, links and platform activity.</p></div>
-                <form action="/admin/logout" method="POST"><button class="btn btn-secondary">Admin Logout</button></form>
+            <div class="admin-page-heading">
+                <div>
+                    <div class="admin-eyebrow">PLATFORM MANAGEMENT</div>
+                    <h1><i class="fas fa-shield-halved"></i> Admin Control Center</h1>
+                    <p>Manage users, plans, payments, announcements, domains, links, backups and platform activity.</p>
+                </div>
             </div>
             <div class="admin-grid">
                 <div class="stat-card"><div class="number"><%= adminStats.totalUsers %></div><div class="label">Users</div></div>
@@ -1919,7 +2636,26 @@
                     <form method="POST" action="/admin/domains/check"><button class="btn btn-secondary">Run Health Check</button></form>
                 </div>
                 <div class="admin-table-wrap" style="margin-top:1rem;"><table class="admin-table"><thead><tr><th>Domain</th><th>Enabled</th><th>Maintenance</th><th>Health</th><th>Checked</th><th>Actions</th></tr></thead><tbody>
-                <% (adminDomains||[]).forEach(function(d){ %><tr><td><strong><%= d.domain %></strong></td><td><%= d.enabled?'Yes':'No' %></td><td><%= d.maintenance?'Yes':'No' %></td><td><%= d.last_health %></td><td><%= d.last_checked_at?new Date(d.last_checked_at).toLocaleString():'Never' %></td><td><div class="admin-actions"><form method="POST" action="/admin/domains/<%= d.domain %>/toggle"><button class="btn btn-sm btn-secondary" <%= d.domain===baseDomain?'disabled':'' %>>Enable/Disable</button></form><form method="POST" action="/admin/domains/<%= d.domain %>/maintenance"><button class="btn btn-sm btn-warning">Maintenance</button></form></div></td></tr><% }); %>
+                <% (adminDomains||[]).forEach(function(d){ var domainState = d.maintenance ? 'maintenance' : (d.enabled ? 'active' : 'coming'); %>
+                    <tr>
+                        <td><strong class="admin-domain-name"><%= d.domain %></strong></td>
+                        <td><span class="domain-state-pill <%= domainState %>"><%= d.enabled ? '✓ Enabled' : '○ Disabled' %></span></td>
+                        <td>
+                            <% if(d.maintenance){ %>
+                                <span class="domain-state-pill maintenance">🛠 Maintenance • Coming Soon</span>
+                            <% } else if(!d.enabled){ %>
+                                <span class="domain-state-pill coming">⏳ Coming Soon</span>
+                            <% } else { %>
+                                <span class="domain-state-pill active">● Ready</span>
+                            <% } %>
+                        </td>
+                        <td><span class="health-text"><%= d.last_health %></span></td>
+                        <td><%= d.last_checked_at?new Date(d.last_checked_at).toLocaleString():'Never' %></td>
+                        <td><div class="admin-actions">
+                            <form method="POST" action="/admin/domains/<%= d.domain %>/toggle"><button class="btn btn-sm btn-secondary" <%= d.domain===baseDomain?'disabled':'' %>><%= d.enabled?'Disable':'Enable' %></button></form>
+                            <form method="POST" action="/admin/domains/<%= d.domain %>/maintenance"><button class="btn btn-sm btn-warning"><%= d.maintenance?'End Maintenance':'Maintenance' %></button></form>
+                        </div></td>
+                    </tr><% }); %>
                 </tbody></table></div>
             </div>
 
@@ -1942,8 +2678,13 @@
                 <h2 style="margin-bottom:1rem;">Recent Links</h2>
                 <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>ID</th><th>User</th><th>Short URL</th><th>Destination</th><th>Clicks</th><th>Status</th><th>Actions</th></tr></thead><tbody>
                 <% adminLinks.forEach(function(l){ var su='https://'+l.selected_domain+'/'+l.short_code; %><tr>
-                    <td><%= l.id %></td><td><%= l.display_name || l.username %></td><td><a href="<%= su %>" target="_blank"><%= su %></a></td><td style="max-width:320px;word-break:break-all;"><%= l.original_url %></td><td><%= l.clicks %></td><td><%= l.is_active?'Active':'Disabled' %></td>
-                    <td><div class="admin-actions"><form action="/admin/links/<%= l.id %>/toggle" method="POST"><button class="btn btn-sm btn-secondary">Toggle</button></form><form action="/admin/links/<%= l.id %>/delete" method="POST" onsubmit="return confirm('Delete this link?')"><button class="btn btn-sm btn-danger">Delete</button></form></div></td>
+                    <td><%= l.id %></td>
+                    <td><strong class="admin-user-cell"><%= l.display_name || l.username %></strong></td>
+                    <td><a class="admin-short-url" href="<%= su %>" target="_blank" rel="noopener noreferrer"><i class="fas fa-link"></i> <span><%= su %></span></a></td>
+                    <td><div class="admin-destination" title="<%= l.original_url %>"><%= l.original_url %></div></td>
+                    <td><strong><%= l.clicks %></strong></td>
+                    <td><span class="domain-state-pill <%= l.is_active?'active':'coming' %>"><%= l.is_active?'● Active':'○ Disabled' %></span></td>
+                    <td><div class="admin-actions"><form action="/admin/links/<%= l.id %>/toggle" method="POST"><button class="btn btn-sm btn-secondary"><%= l.is_active?'Disable':'Enable' %></button></form><form action="/admin/links/<%= l.id %>/delete" method="POST" onsubmit="return confirm('Delete this link?')"><button class="btn btn-sm btn-danger">Delete</button></form></div></td>
                 </tr><% }); %>
                 </tbody></table></div>
             </div>
@@ -1964,11 +2705,18 @@
 
     </div>
 
-    <footer class="footer">
+    <% if (page !== 'admin' && page !== 'admin-login') { %>
+<footer class="footer">
         <p>🔗 This Person Is brand Shortlink &bull; <span class="heart">❤️</span> &bull; Powered by <a href="https://t.me/thispersonisbrand537" target="_blank" rel="noopener noreferrer">@thispersonisbrand537</a></p>
         <p style="font-size: 0.75rem; margin-top: 0.5rem; opacity: 0.7;"><a href="/faq">FAQ</a> &bull; <a href="/privacy">Privacy</a> &bull; <a href="/terms">Terms</a></p>
         <p style="font-size: 0.75rem; margin-top: 0.5rem; opacity: 0.5;">© 2026 All rights reserved &bull; ♾️ Unlimited Short Links</p>
     </footer>
+<% } else if (page === 'admin') { %>
+    <footer class="admin-footer">
+        <span><i class="fas fa-shield-halved"></i> THIS PERSON IS BRAND • Admin Control Center</span>
+        <span>PostgreSQL Persistent Platform</span>
+    </footer>
+<% } %>
 
     <script>
 
@@ -2453,6 +3201,36 @@
                 win.document.close();
             } catch (e) { showToast('QR generation failed', 'error'); }
         }
+
+
+        // ===== PREMIUM CREATE LINK POPUP =====
+        function openCreateLinkModal() {
+            var modal = document.getElementById('createLinkModal');
+            if (!modal) return window.location.href = '/shorten-page';
+            modal.classList.add('active');
+            modal.style.display = 'flex';
+            modal.setAttribute('aria-hidden','false');
+            document.body.style.overflow = 'hidden';
+            setTimeout(function(){
+                var input = modal.querySelector('input[name="originalUrl"]');
+                if(input) input.focus();
+            },100);
+        }
+        function closeCreateLinkModal() {
+            var modal = document.getElementById('createLinkModal');
+            if (!modal) return;
+            modal.classList.remove('active');
+            modal.style.display = 'none';
+            modal.setAttribute('aria-hidden','true');
+            document.body.style.overflow = '';
+        }
+        document.addEventListener('click', function(e){
+            var modal = document.getElementById('createLinkModal');
+            if(modal && e.target === modal) closeCreateLinkModal();
+        });
+        document.addEventListener('keydown', function(e){
+            if(e.key === 'Escape') closeCreateLinkModal();
+        });
 
         // ===== TOAST =====
         function showToast(message, type, duration) {
