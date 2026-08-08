@@ -1611,6 +1611,188 @@
             .premium-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
         }
 
+
+        /* ===== V7.5 LEFT SIDEBAR + CLEAN BRAND TOPBAR ===== */
+        .dashboard-brandbar{
+            width:calc(100% - 32px);
+            max-width:1500px;
+            margin:16px auto 0;
+            padding:.9rem 1.15rem;
+            border-radius:20px;
+            background:linear-gradient(135deg,rgba(14,23,49,.90),rgba(18,28,58,.84));
+            border:1px solid rgba(255,255,255,.09);
+            box-shadow:0 16px 45px rgba(0,0,0,.22);
+            backdrop-filter:blur(22px);
+            display:flex;
+            align-items:center;
+        }
+        .dashboard-brand-link{
+            display:inline-flex;
+            align-items:center;
+            gap:.75rem;
+            text-decoration:none!important;
+            color:#fff!important;
+        }
+        .dashboard-brand-copy{display:flex;flex-direction:column;line-height:1.1}
+        .dashboard-brand-name{
+            font-family:'Manrope',sans-serif;
+            font-weight:800;
+            font-size:1.02rem;
+            background:linear-gradient(90deg,#fff,#A7D8FF,#B89CFF);
+            -webkit-background-clip:text;
+            -webkit-text-fill-color:transparent;
+        }
+        .dashboard-brand-sub{
+            margin-top:.22rem;
+            color:#7F8EAE;
+            font-size:.58rem;
+            font-weight:800;
+            letter-spacing:.18em;
+        }
+
+        body:has(.dashboard-app-shell) .announcement-ticker{
+            max-width:1500px;
+        }
+
+        .premium-sidebar{
+            padding:1rem!important;
+        }
+        .sidebar-menu form{
+            margin:0;
+        }
+        .sidebar-logout-form{
+            width:100%;
+        }
+        .sidebar-logout{
+            color:#FF9CAE!important;
+        }
+        .sidebar-logout i{
+            color:#FF7E96!important;
+        }
+
+        .sidebar-menu a,
+        .sidebar-menu button{
+            min-height:44px;
+        }
+
+        .sidebar-menu a span,
+        .sidebar-menu button span{
+            color:inherit!important;
+            opacity:1!important;
+        }
+
+        .dashboard-topbar{
+            padding-top:.2rem!important;
+        }
+
+        /* Keep dashboard visually focused on sidebar */
+        body:has(.dashboard-app-shell) .footer{
+            margin-left:auto;
+            margin-right:auto;
+        }
+
+        @media(max-width:850px){
+            .dashboard-brandbar{
+                width:calc(100% - 20px);
+                margin-top:10px;
+            }
+            .dashboard-brand-name{font-size:.92rem}
+            .dashboard-brand-sub{font-size:.52rem}
+        }
+
+
+        /* ===== V7.6 INTERACTIVE HOVER FEEDBACK ===== */
+        .premium-metric-grid .stat-card,
+        .link-card,
+        .glass-card,
+        .analytics-mini-card,
+        .country-item,
+        .device-tag,
+        .short-link-display,
+        .plan-usage-card,
+        .sidebar-plan,
+        .domain-notice-item,
+        .payment-method-card {
+            transform:translateZ(0);
+            transition:transform .22s cubic-bezier(.2,.8,.2,1),box-shadow .22s ease,border-color .22s ease,background .22s ease;
+        }
+
+        .premium-metric-grid .stat-card:hover,
+        .analytics-mini-card:hover,
+        .plan-usage-card:hover,
+        .sidebar-plan:hover {
+            transform:translateY(-5px) scale(1.012);
+            border-color:rgba(124,92,255,.38)!important;
+            box-shadow:0 18px 48px rgba(0,0,0,.28),0 0 0 1px rgba(39,215,255,.05);
+        }
+
+        .link-card:hover {
+            transform:translateY(-6px) scale(1.008)!important;
+            border-color:rgba(39,215,255,.38)!important;
+            box-shadow:0 20px 52px rgba(0,0,0,.32),0 0 28px rgba(39,215,255,.07)!important;
+        }
+        .link-card:hover .link-url,
+        .short-link-display:hover .link,
+        .admin-short-url:hover {
+            text-shadow:0 0 14px rgba(39,215,255,.38);
+        }
+
+        .short-link-display:hover {
+            transform:translateY(-4px) scale(1.006);
+            border-color:rgba(39,215,255,.36)!important;
+            box-shadow:0 15px 38px rgba(0,0,0,.25),0 0 24px rgba(39,215,255,.06);
+        }
+
+        .btn:hover,
+        .copy-btn:hover,
+        .dashboard-icon-btn:hover,
+        .sidebar-menu a:hover,
+        .sidebar-menu button:hover {
+            filter:brightness(1.08);
+        }
+
+        .admin-table tbody tr {
+            transition:transform .16s ease,background .16s ease,box-shadow .16s ease;
+        }
+        .admin-table tbody tr:hover {
+            transform:translateX(3px);
+            box-shadow:inset 3px 0 0 rgba(39,215,255,.42);
+        }
+
+        .chart-container {
+            transition:border-color .22s ease,box-shadow .22s ease,transform .22s ease;
+            border-radius:16px;
+        }
+        .chart-container:hover {
+            transform:translateY(-2px);
+            box-shadow:0 14px 35px rgba(0,0,0,.18);
+        }
+        .chart-container canvas { cursor:crosshair; }
+
+        /* ===== V7.6 PAYMENT UI ===== */
+        .payment-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;margin-bottom:1rem}
+        .payment-kicker{font-size:.62rem;letter-spacing:.16em;font-weight:900;color:#89E8FF;margin-bottom:.18rem}
+        .payment-secure{display:inline-flex;align-items:center;gap:.4rem;padding:.38rem .65rem;border-radius:999px;color:#8CFFD1;background:rgba(51,230,161,.07);border:1px solid rgba(51,230,161,.18);font-size:.69rem;font-weight:800}
+        .payment-method-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem;margin-bottom:1rem}
+        .payment-method-card{padding:.9rem;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);display:flex;flex-direction:column;gap:.25rem;min-width:0}
+        .payment-method-card:hover{transform:translateY(-4px);border-color:rgba(124,92,255,.34);box-shadow:0 14px 32px rgba(0,0,0,.20)}
+        .payment-method-title{font-size:.73rem;font-weight:900;letter-spacing:.04em;color:#fff}
+        .payment-method-card strong{font-size:.86rem;color:#EAF3FF;word-break:break-word}
+        .payment-method-card span{font-size:.65rem;color:#AEBBD5}
+        .payment-method-card.bkash{border-color:rgba(255,70,130,.18)}
+        .payment-method-card.nagad{border-color:rgba(255,145,40,.18)}
+        .payment-method-card.binance{border-color:rgba(255,203,92,.22)}
+        .payment-warning{display:flex;align-items:flex-start;gap:.65rem;padding:.8rem .9rem;border-radius:14px;margin-bottom:1rem;background:rgba(255,203,92,.06);border:1px solid rgba(255,203,92,.17);color:#FFE08A}
+        .payment-warning div{display:flex;flex-direction:column;gap:.15rem}.payment-warning strong{font-size:.75rem}.payment-warning span{font-size:.69rem;color:#D7CFB3;line-height:1.5}
+        .payment-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+        .method-help{display:none;align-items:flex-start;gap:.55rem;padding:.65rem .75rem;border-radius:12px;margin-bottom:.8rem;background:rgba(39,215,255,.05);border:1px solid rgba(39,215,255,.12);color:#BFEFFF;font-size:.69rem;line-height:1.5}
+        .method-help.active{display:flex}
+        .payment-submit-btn{width:100%;justify-content:center;padding:.9rem}
+        @media(max-width:850px){.payment-method-cards{grid-template-columns:1fr}.payment-form-grid{grid-template-columns:1fr}}
+
+
+        .usd-price{font-size:.72em;color:#8CFFD1;font-weight:800;margin-left:.28rem;white-space:nowrap}
+
 </style>
 </head>
 <body>
@@ -1632,6 +1814,17 @@
     </div>
 
     <% if (page !== 'admin' && page !== 'admin-login') { %>
+<% if (page === 'dashboard') { %>
+    <nav class="dashboard-brandbar">
+        <a href="/" class="dashboard-brand-link">
+            <div class="logo-icon"><i class="fas fa-link"></i></div>
+            <div class="dashboard-brand-copy">
+                <div class="dashboard-brand-name">This Person Is brand Shortlink</div>
+                <div class="dashboard-brand-sub">PREMIUM URL SHORTENER</div>
+            </div>
+        </a>
+    </nav>
+<% } else { %>
 <nav class="navbar">
         <a href="/" class="logo-wrapper">
             <div class="logo-icon">🔗</div>
@@ -1696,6 +1889,7 @@
             <% } %>
         </div>
     </nav>
+<% } %>
 <% } else if (page === 'admin') { %>
     <nav class="admin-navbar">
         <div class="admin-brand">
@@ -1944,13 +2138,18 @@
                     </div>
 
                     <nav class="sidebar-menu">
+                        <a href="/"><i class="fas fa-house"></i><span>Home</span></a>
                         <a class="active" href="/dashboard"><i class="fas fa-chart-pie"></i><span>Overview</span></a>
                         <button type="button" onclick="openCreateLinkModal()"><i class="fas fa-plus"></i><span>Create Link</span></button>
                         <a href="/shorten-page"><i class="fas fa-link"></i><span>My Short Links</span></a>
                         <a href="/api-access"><i class="fas fa-code"></i><span>API Access</span><span class="side-tag">PRO</span></a>
                         <a href="/notifications"><i class="fas fa-bell"></i><span>Notifications</span></a>
                         <a href="/plans"><i class="fas fa-crown"></i><span>Plans</span></a>
+                        <button type="button" onclick="openProfileModal()"><i class="fas fa-user"></i><span>Profile</span></button>
                         <% if (user.isAdmin) { %><a href="/admin"><i class="fas fa-shield-halved"></i><span>Admin</span></a><% } %>
+                        <form action="/logout" method="POST" class="sidebar-logout-form">
+                            <button type="submit" class="sidebar-logout"><i class="fas fa-right-from-bracket"></i><span>Logout</span></button>
+                        </form>
                     </nav>
 
                     <div class="sidebar-plan <%= user.isPremium ? 'premium' : 'free' %>">
@@ -1976,7 +2175,6 @@
                         <p>Track performance, manage short links and grow your reach from one place.</p>
                     </div>
                     <div class="dashboard-top-actions">
-                        <a href="/notifications" class="dashboard-icon-btn" title="Notifications"><i class="fas fa-bell"></i></a>
                         <button type="button" class="btn btn-primary create-link-hero-btn" onclick="openCreateLinkModal()"><i class="fas fa-plus"></i> Create New Link</button>
                     </div>
                 </div>
@@ -2523,30 +2721,72 @@
                     <p>Up to <%= freeLinkLimit %> short links</p><p>Core analytics</p><p>Custom domains when available</p>
                 </div>
                 <div class="plan-card featured">
-                    <h3>Premium • 1 Month</h3><div class="plan-price">৳<%= plan1Price %></div>
+                    <h3>Premium • 1 Month</h3><div class="plan-price">৳<%= plan1Price %> <span class="usd-price">≈ $<%= Number(plan1Usd).toFixed(2) %></span></div>
                     <p>Unlimited short links</p><p>Full analytics</p><p>No link-count limit</p>
                 </div>
                 <div class="plan-card featured">
-                    <h3>Premium • 3 Months</h3><div class="plan-price">৳<%= plan3Price %></div>
+                    <h3>Premium • 3 Months</h3><div class="plan-price">৳<%= plan3Price %> <span class="usd-price">≈ $<%= Number(plan3Usd).toFixed(2) %></span></div>
                     <p>Unlimited short links</p><p>Full analytics</p><p>Longer validity</p>
                 </div>
             </div>
 
-            <div class="glass-card payment-box">
-                <h2>Manual Payment</h2>
-                <p class="tiny-note" style="margin:.5rem 0 1rem;">bKash: <strong><%= bkashNumber %></strong> &nbsp; • &nbsp; Nagad: <strong><%= nagadNumber %></strong></p>
-                <form action="/payments" method="POST" enctype="multipart/form-data">
-                    <div class="form-group"><label>Plan</label><select class="form-control" name="planMonths" required><option value="1">1 Month — ৳<%= plan1Price %></option><option value="3">3 Months — ৳<%= plan3Price %></option></select></div>
-                    <div class="form-group"><label>Payment Method</label><select class="form-control" name="method" required><option value="bkash">bKash</option><option value="nagad">Nagad</option></select></div>
-                    <div class="form-group"><label>Transaction ID</label><input class="form-control" name="transactionId" required placeholder="Enter transaction ID"></div>
-                    <div class="form-group"><label>Payment Screenshot (PNG/JPG/WEBP, max 2MB)</label><input class="form-control" type="file" name="screenshot" accept="image/png,image/jpeg,image/webp" required></div>
-                    <button class="btn btn-primary" type="submit">Submit Payment</button>
+            <div class="glass-card payment-box interactive-payment-card">
+                <div class="payment-heading">
+                    <div><div class="payment-kicker">PREMIUM ACTIVATION</div><h2>Manual Payment</h2></div>
+                    <span class="payment-secure"><i class="fas fa-shield-halved"></i> Admin Verified</span>
+                </div>
+
+                <div class="payment-method-cards">
+                    <div class="payment-method-card bkash">
+                        <div class="payment-method-title">bKash</div>
+                        <strong><%= bkashNumber %></strong>
+                        <span>⚠️ Send Money only</span>
+                    </div>
+                    <div class="payment-method-card nagad">
+                        <div class="payment-method-title">Nagad</div>
+                        <strong><%= nagadNumber %></strong>
+                        <span>⚠️ Send Money only</span>
+                    </div>
+                    <div class="payment-method-card binance">
+                        <div class="payment-method-title">Binance</div>
+                        <strong>Binance ID: <%= typeof binanceId !== 'undefined' ? binanceId : 'Set in Railway Variables' %></strong>
+                        <span>USD plan amount: 1 Month ≈ $<%= Number(plan1Usd).toFixed(2) %> • 3 Months ≈ $<%= Number(plan3Usd).toFixed(2) %><br>Submit Order ID + payment screenshot</span>
+                    </div>
+                </div>
+
+                <div class="payment-warning">
+                    <i class="fas fa-circle-exclamation"></i>
+                    <div><strong>bKash / Nagad payment instruction</strong><span>এই নাম্বারে অবশ্যই <b>Send Money</b> করবেন। Cash Out / Payment অপশন ব্যবহার করবেন না। Send Money করার পরে Transaction ID এবং screenshot submit করুন।</span></div>
+                </div>
+
+                <form action="/payments" method="POST" enctype="multipart/form-data" id="premiumPaymentForm">
+                    <div class="payment-form-grid">
+                        <div class="form-group"><label>Plan</label><select class="form-control" name="planMonths" required><option value="1">1 Month — ৳<%= plan1Price %> / ≈ $<%= Number(plan1Usd).toFixed(2) %></option><option value="3">3 Months — ৳<%= plan3Price %> / ≈ $<%= Number(plan3Usd).toFixed(2) %></option></select></div>
+                        <div class="form-group"><label>Payment Method</label><select class="form-control" name="method" id="paymentMethodSelect" required><option value="bkash">bKash — Send Money</option><option value="nagad">Nagad — Send Money</option><option value="binance">Binance</option></select></div>
+                    </div>
+
+                    <div id="localPaymentHelp" class="method-help active">
+                        <i class="fas fa-mobile-screen-button"></i><span>Send Money করুন → Transaction ID কপি করুন → Screenshot নিন → নিচে submit করুন।</span>
+                    </div>
+                    <div id="binancePaymentHelp" class="method-help">
+                        <i class="fab fa-bitcoin"></i><span>উপরের Binance ID-তে payment/transfer সম্পন্ন করে <b>Binance Order ID</b> এবং payment screenshot submit করুন।</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label id="paymentReferenceLabel">Transaction ID</label>
+                        <input class="form-control" name="transactionId" id="paymentReferenceInput" required placeholder="Enter bKash/Nagad transaction ID">
+                    </div>
+                    <div class="form-group">
+                        <label id="paymentScreenshotLabel">Payment Screenshot (PNG/JPG/WEBP, max 2MB)</label>
+                        <input class="form-control" type="file" name="screenshot" accept="image/png,image/jpeg,image/webp" required>
+                    </div>
+                    <button class="btn btn-primary payment-submit-btn" type="submit"><i class="fas fa-paper-plane"></i> Submit for Admin Verification</button>
                 </form>
             </div>
 
             <div class="glass-card">
                 <h2 style="margin-bottom:1rem;">Payment History</h2>
-                <div class="admin-table-wrap"><table class="admin-table" style="min-width:700px;"><thead><tr><th>Date</th><th>Plan</th><th>Method</th><th>Txn ID</th><th>Status</th><th>Note</th></tr></thead><tbody>
+                <div class="admin-table-wrap"><table class="admin-table" style="min-width:700px;"><thead><tr><th>Date</th><th>Plan</th><th>Method</th><th>Reference / Order ID</th><th>Status</th><th>Note</th></tr></thead><tbody>
                 <% (paymentHistory || []).forEach(function(p){ %>
                     <tr><td><%= new Date(p.created_at).toLocaleString() %></td><td><%= p.plan_months %> month</td><td><%= p.method %></td><td><%= p.transaction_id %></td>
                     <td><span class="status-pill <%= p.status==='approved'?'ok':(p.status==='rejected'?'bad':'warn') %>"><%= p.status %></span></td><td><%= p.admin_note || '-' %></td></tr>
@@ -2604,7 +2844,7 @@
 
             <div class="glass-card" style="margin-bottom:1.5rem;">
                 <h2 style="margin-bottom:1rem;">Payments</h2>
-                <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>ID</th><th>User</th><th>Plan</th><th>Amount</th><th>Method</th><th>Txn</th><th>Proof</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+                <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>ID</th><th>User</th><th>Plan</th><th>Amount</th><th>Method</th><th>Reference / Order ID</th><th>Proof</th><th>Status</th><th>Actions</th></tr></thead><tbody>
                 <% adminPayments.forEach(function(p){ %><tr>
                     <td><%= p.id %></td><td><strong><%= p.display_name || p.username %></strong><br><%= p.email || '' %></td><td><%= p.plan_months %> mo</td><td>৳<%= p.amount %></td><td><%= p.method %></td><td><%= p.transaction_id %></td>
                     <td><a class="btn btn-sm btn-secondary" href="/admin/payments/<%= p.id %>/screenshot" target="_blank">View</a></td>
@@ -3152,36 +3392,75 @@
             
             var ctx = document.getElementById('analyticsChart');
             if (ctx) {
-                var weekData = <%= typeof weekData !== 'undefined' && weekData ? JSON.stringify(weekData) : '[0,0,0,0,0,0,0]' %>;
+                var chartDays = <%= typeof chartDays !== 'undefined' && chartDays ? JSON.stringify(chartDays) : '[]' %>;
+                var chartLabels = chartDays.length
+                    ? chartDays.map(function(d){ return d.day.slice(0,3) + ' • ' + d.date.replace(/ \d{4}$/,''); })
+                    : ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+                var chartValues = chartDays.length
+                    ? chartDays.map(function(d){ return d.clicks; })
+                    : <%= typeof weekData !== 'undefined' && weekData ? JSON.stringify(weekData) : '[0,0,0,0,0,0,0]' %>;
+
                 new Chart(ctx, {
                     type: 'line',
                     data: {
-                        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                        labels: chartLabels,
                         datasets: [{
                             label: 'Clicks',
-                            data: weekData,
-                            borderColor: '#6C63FF',
-                            backgroundColor: 'rgba(108, 99, 255, 0.08)',
+                            data: chartValues,
+                            borderColor: '#7C5CFF',
+                            backgroundColor: 'rgba(124,92,255,0.10)',
                             borderWidth: 3,
-                            pointBackgroundColor: '#6C63FF',
-                            pointBorderColor: '#6C63FF',
+                            pointBackgroundColor: '#27D7FF',
+                            pointBorderColor: '#EAFBFF',
                             pointBorderWidth: 2,
-                            pointRadius: 5,
-                            tension: 0.4,
+                            pointRadius: 4,
+                            pointHoverRadius: 9,
+                            pointHoverBorderWidth: 3,
+                            pointHitRadius: 20,
+                            tension: 0.38,
                             fill: true
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        hover: { mode: 'index', intersect: false },
                         plugins: {
-                            legend: { labels: { color: '#B0B0C8', font: { family: 'Inter', size: 12 } } }
+                            legend: { labels: { color: '#DCE7FF', font: { family: 'Inter', size: 12 } } },
+                            tooltip: {
+                                enabled: true,
+                                displayColors: false,
+                                padding: 12,
+                                cornerRadius: 10,
+                                backgroundColor: 'rgba(10,16,36,0.97)',
+                                titleColor: '#FFFFFF',
+                                bodyColor: '#CFE8FF',
+                                borderColor: 'rgba(124,92,255,0.48)',
+                                borderWidth: 1,
+                                callbacks: {
+                                    title: function(items) {
+                                        if (!items || !items.length) return '';
+                                        var i = items[0].dataIndex;
+                                        if (!chartDays[i]) return items[0].label || '';
+                                        return chartDays[i].day + ' • ' + chartDays[i].date;
+                                    },
+                                    label: function(context) {
+                                        return 'Clicks: ' + Number(context.parsed.y || 0).toLocaleString();
+                                    }
+                                }
+                            }
                         },
                         scales: {
-                            x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#B0B0C8', font: { family: 'Inter', size: 11 } } },
-                            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#B0B0C8', font: { family: 'Inter', size: 11 }, stepSize: 1 }, beginAtZero: true }
+                            x: { grid: { color: 'rgba(255,255,255,0.045)' }, ticks: { color: '#AEBBD6', font: { family: 'Inter', size: 10 } } },
+                            y: { grid: { color: 'rgba(255,255,255,0.045)' }, ticks: { color: '#AEBBD6', font: { family: 'Inter', size: 11 }, stepSize: 1 }, beginAtZero: true }
                         },
-                        animation: { duration: 2000, easing: 'easeInOutQuart' }
+                        animation: { duration: 1400, easing: 'easeOutQuart' },
+                        onHover: function(event, elements) {
+                            if (event && event.native && event.native.target) {
+                                event.native.target.style.cursor = elements && elements.length ? 'pointer' : 'crosshair';
+                            }
+                        }
                     }
                 });
             }
@@ -3231,6 +3510,27 @@
         document.addEventListener('keydown', function(e){
             if(e.key === 'Escape') closeCreateLinkModal();
         });
+
+
+        // ===== V7.6 PAYMENT METHOD UI =====
+        (function(){
+            var method = document.getElementById('paymentMethodSelect');
+            if(!method) return;
+            var label = document.getElementById('paymentReferenceLabel');
+            var input = document.getElementById('paymentReferenceInput');
+            var localHelp = document.getElementById('localPaymentHelp');
+            var binanceHelp = document.getElementById('binancePaymentHelp');
+
+            function syncPaymentMethod(){
+                var isBinance = method.value === 'binance';
+                if(label) label.textContent = isBinance ? 'Binance Order ID' : 'Transaction ID';
+                if(input) input.placeholder = isBinance ? 'Enter Binance Order ID' : 'Enter bKash/Nagad transaction ID';
+                if(localHelp) localHelp.classList.toggle('active', !isBinance);
+                if(binanceHelp) binanceHelp.classList.toggle('active', isBinance);
+            }
+            method.addEventListener('change', syncPaymentMethod);
+            syncPaymentMethod();
+        })();
 
         // ===== TOAST =====
         function showToast(message, type, duration) {
