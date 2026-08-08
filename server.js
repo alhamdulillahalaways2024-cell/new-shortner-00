@@ -705,7 +705,9 @@ app.get('/dashboard',authMiddleware,async(req,res)=>{
     const browserStats=Object.entries(browserMap).map(([name,count])=>({name,count})).sort((a,b)=>b.count-a.count).slice(0,8);
     const uniqueClicks=uniqueIps.size;
     const activeUsers=await getActiveOnlineUsers();
-    res.render('index',{page:'dashboard',user:freshUser,links,totalClicks,todayClicks,yesterdayClicks,weekClicks,monthClicks,yearClicks,uniqueClicks,topReferrers,browserStats,botClicks,realClicks,clickRate,onlineUsers:activeUsers.length,countryStats,deviceStats,weekData,countries,onlineUserList:activeUsers.map(u=>({name:u.displayName||u.username||'User'})),freeLinkLimit:FREE_LINK_LIMIT,linkUsage,linksRemaining,error:req.query.error||null,success:req.query.success||null,info:null,shortUrl:null,customDomains:CUSTOM_DOMAINS,availableDomains:AVAILABLE_DOMAINS,baseDomain:BASE_HOST,baseUrl:getBaseUrl(req)});
+    const domainChoices=await getDomainChoices();
+    const dashboardDomains=domainChoices.filter(d=>d.selectable).map(d=>d.domain);
+    res.render('index',{page:'dashboard',user:freshUser,links,totalClicks,todayClicks,yesterdayClicks,weekClicks,monthClicks,yearClicks,uniqueClicks,topReferrers,browserStats,botClicks,realClicks,clickRate,onlineUsers:activeUsers.length,countryStats,deviceStats,weekData,countries,onlineUserList:activeUsers.map(u=>({name:u.displayName||u.username||'User'})),freeLinkLimit:FREE_LINK_LIMIT,linkUsage,linksRemaining,error:req.query.error||null,success:req.query.success||null,info:null,shortUrl:null,customDomains:dashboardDomains.filter(d=>d!==normalizeHost(BASE_HOST)),availableDomains:dashboardDomains,domainChoices,baseDomain:BASE_HOST,baseUrl:getBaseUrl(req)});
   }catch(e){ console.error('Dashboard error:',e); res.redirect('/?error='+encodeURIComponent('Dashboard database error')); }
 });
 
