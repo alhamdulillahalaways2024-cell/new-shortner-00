@@ -809,8 +809,75 @@ app.get('/qr/:code',async(req,res)=>{
 });
 
 // ===== LINK MANAGEMENT =====
+
+// ===== V7.11 CANONICAL USER LINK ACTIONS =====
+// These routes match the My Links forms exactly.
+// Free/Premium plan does NOT affect editing an already-created link.
+app.post('/links/:id/update',authMiddleware,async(req,res)=>{
+  try{
+    const id=Number(req.params.id);
+    const newUrl=String(req.body.originalUrl||req.body.newUrl||'').trim();
+    if(!Number.isFinite(id)||id<=0)return res.redirect('/my-links?error='+encodeURIComponent('Invalid link ID'));
+    if(!newUrl)return res.redirect('/my-links?error='+encodeURIComponent('Please enter a destination URL'));
+
+    const unsafe=validateDestinationUrl(newUrl);
+    if(unsafe)return res.redirect('/my-links?error='+encodeURIComponent(unsafe));
+
+    const q=await pool.query(
+      'UPDATE links SET original_url=$1,updated_at=NOW() WHERE id=$2 AND user_id=$3 RETURNING id',
+      [newUrl,id,req.user.id]
+    );
+    if(!q.rowCount)return res.redirect('/my-links?error='+encodeURIComponent('Link not found or you do not own this link'));
+
+    await notifyUser(req.user.id,'Short link updated','Your destination URL was updated successfully.','success');
+    res.redirect('/my-links?success='+encodeURIComponent('Link updated successfully!'));
+  }catch(e){
+    console.error('User link update error:',e);
+    res.redirect('/my-links?error='+encodeURIComponent('Failed to update link'));
+  }
+});
+
+app.post('/links/:id/toggle',authMiddleware,async(req,res)=>{
+  try{
+    const id=Number(req.params.id);
+    const q=await pool.query(
+      'UPDATE links SET is_active=NOT is_active,updated_at=NOW() WHERE id=$1 AND user_id=$2 RETURNING id,is_active',
+      [id,req.user.id]
+    );
+    if(!q.rowCount)return res.redirect('/my-links?error='+encodeURIComponent('Link not found or you do not own this link'));
+    res.redirect('/my-links?success='+encodeURIComponent(q.rows[0].is_active?'Link enabled successfully!':'Link disabled successfully!'));
+  }catch(e){
+    console.error('User link toggle error:',e);
+    res.redirect('/my-links?error='+encodeURIComponent('Failed to change link status'));
+  }
+});
+
+app.post('/links/:id/delete',authMiddleware,async(req,res)=>{
+  try{
+    const id=Number(req.params.id);
+    const q=await pool.query(
+      'DELETE FROM links WHERE id=$1 AND user_id=$2 RETURNING id',
+      [id,req.user.id]
+    );
+    if(!q.rowCount)return res.redirect('/my-links?error='+encodeURIComponent('Link not found or you do not own this link'));
+    await pool.query('UPDATE users SET total_links=GREATEST(total_links-1,0) WHERE id=$1',[req.user.id]);
+    res.redirect('/my-links?success='+encodeURIComponent('Link deleted successfully!'));
+  }catch(e){
+    console.error('User link delete error:',e);
+    res.redirect('/my-links?error='+encodeURIComponent('Failed to delete link'));
+  }
+});
+
 app.post('/update-link/:id',authMiddleware,async(req,res)=>{
-  try{const {newUrl}=req.body;if(!newUrl)return res.redirect('/dashboard?error='+encodeURIComponent('Please enter a URL'));try{new URL(newUrl);}catch(e){return res.redirect('/dashboard?error='+encodeURIComponent('Invalid URL format'));}const q=await pool.query('UPDATE links SET original_url=$1,updated_at=NOW() WHERE id=$2 AND user_id=$3 RETURNING id',[newUrl,Number(req.params.id),req.user.id]);if(!q.rowCount)return res.redirect('/dashboard?error='+encodeURIComponent('Link not found'));res.redirect('/dashboard?success='+encodeURIComponent('Link updated successfully!'));}catch(e){res.redirect('/dashboard?error='+encodeURIComponent('Failed to update link'));}
+  try{
+    const newUrl=String(req.body.newUrl||req.body.originalUrl||'').trim();
+    if(!newUrl)return res.redirect('/dashboard?error='+encodeURIComponent('Please enter a URL'));
+    const unsafe=validateDestinationUrl(newUrl);
+    if(unsafe)return res.redirect('/dashboard?error='+encodeURIComponent(unsafe));
+    const q=await pool.query('UPDATE links SET original_url=$1,updated_at=NOW() WHERE id=$2 AND user_id=$3 RETURNING id',[newUrl,Number(req.params.id),req.user.id]);
+    if(!q.rowCount)return res.redirect('/dashboard?error='+encodeURIComponent('Link not found'));
+    res.redirect('/dashboard?success='+encodeURIComponent('Link updated successfully!'));
+  }catch(e){res.redirect('/dashboard?error='+encodeURIComponent('Failed to update link'));}
 });
 app.post('/toggle-link/:id',authMiddleware,async(req,res)=>{
   try{const q=await pool.query('UPDATE links SET is_active=NOT is_active,updated_at=NOW() WHERE id=$1 AND user_id=$2 RETURNING id',[Number(req.params.id),req.user.id]);if(!q.rowCount)return res.redirect('/dashboard?error='+encodeURIComponent('Link not found'));res.redirect('/dashboard?success='+encodeURIComponent('Link toggled successfully!'));}catch(e){res.redirect('/dashboard?error='+encodeURIComponent('Failed to toggle link'));}
