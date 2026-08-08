@@ -614,6 +614,37 @@
 
 
 
+
+        /* ===== V7.1 FREE / PREMIUM PLAN STATUS ===== */
+        .plan-status-badge {
+            display:inline-flex;align-items:center;gap:.45rem;margin-top:.55rem;padding:.38rem .75rem;
+            border-radius:999px;font-size:.72rem;font-weight:800;letter-spacing:.06em;
+        }
+        .plan-status-badge.premium {
+            color:#FFE9A6;background:linear-gradient(135deg,rgba(255,203,92,.15),rgba(124,92,255,.15));
+            border:1px solid rgba(255,203,92,.32);box-shadow:0 8px 26px rgba(255,203,92,.08);
+        }
+        .plan-status-badge.free {
+            color:#A9CBFF;background:rgba(91,140,255,.09);border:1px solid rgba(91,140,255,.22);
+        }
+        .plan-usage-card {
+            display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;
+            margin-bottom:1.4rem;padding:1.05rem 1.15rem;border-radius:18px;
+            background:linear-gradient(135deg,rgba(255,255,255,.065),rgba(255,255,255,.035));
+            border:1px solid rgba(255,255,255,.10);box-shadow:var(--shadow-soft);
+        }
+        .plan-usage-card.premium { border-color:rgba(255,203,92,.22);background:linear-gradient(135deg,rgba(255,203,92,.075),rgba(124,92,255,.065)); }
+        .plan-usage-main { display:flex;align-items:center;gap:.9rem;min-width:240px; }
+        .plan-usage-icon { width:48px;height:48px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;background:rgba(255,255,255,.065);border:1px solid rgba(255,255,255,.09); }
+        .plan-usage-title { font-family:'Manrope',sans-serif;font-weight:800;font-size:1.02rem; }
+        .plan-usage-sub { color:var(--text-muted);font-size:.86rem;margin-top:.15rem; }
+        .plan-usage-expiry { color:var(--text-soft);font-size:.76rem;margin-top:.2rem; }
+        .usage-progress-wrap { display:flex;align-items:center;gap:.75rem;flex:1;justify-content:flex-end;min-width:280px; }
+        .usage-progress { width:min(260px,100%);height:9px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden;border:1px solid rgba(255,255,255,.06); }
+        .usage-progress-fill { height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--primary-2),var(--accent));box-shadow:0 0 18px rgba(39,215,255,.28); }
+        .premium-unlimited { font-weight:800;color:#FFE9A6;padding:.55rem .8rem;border-radius:12px;background:rgba(255,203,92,.08);border:1px solid rgba(255,203,92,.18); }
+        @media(max-width:700px){.usage-progress-wrap{min-width:100%;justify-content:flex-start;flex-wrap:wrap}.usage-progress{width:100%}.plan-usage-card{align-items:flex-start}}
+
         /* ===== V7 FULL PREMIUM REDESIGN ===== */
         html { scroll-behavior: smooth; }
         body {
@@ -1303,12 +1334,41 @@
         <!-- ===== DASHBOARD PAGE ===== -->
         <% if (page === 'dashboard') { %>
             <div class="fade-in">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; flex-wrap: wrap; gap: 1rem;">
                     <div>
                         <h2 style="font-size: 2rem; font-weight: 800; background: linear-gradient(135deg, var(--text), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">📊 Dashboard</h2>
-                        <span class="unlimited-badge" style="margin-top: 0.3rem;">♾️ Unlimited Short Links</span>
+                        <% if (user && user.isPremium) { %>
+                            <span class="plan-status-badge premium">👑 PREMIUM USER</span>
+                        <% } else { %>
+                            <span class="plan-status-badge free">FREE PLAN</span>
+                        <% } %>
                     </div>
                     <a href="/shorten-page" class="btn btn-primary">+ Create New Link</a>
+                </div>
+
+                <div class="plan-usage-card <%= user && user.isPremium ? 'premium' : 'free' %>">
+                    <div class="plan-usage-main">
+                        <div class="plan-usage-icon"><%= user && user.isPremium ? '👑' : '🔗' %></div>
+                        <div>
+                            <div class="plan-usage-title"><%= user && user.isPremium ? 'Premium Plan' : 'Free Plan' %></div>
+                            <% if (user && user.isPremium) { %>
+                                <div class="plan-usage-sub">Short Link Limit: <strong>Unlimited</strong></div>
+                                <% if (user.premiumUntil) { %><div class="plan-usage-expiry">Premium until <%= new Date(user.premiumUntil).toLocaleDateString() %></div><% } %>
+                            <% } else { %>
+                                <div class="plan-usage-sub">Short Link Usage: <strong><%= typeof linkUsage !== 'undefined' ? linkUsage : 0 %> / <%= typeof freeLinkLimit !== 'undefined' ? freeLinkLimit : 5 %></strong></div>
+                                <div class="plan-usage-expiry"><strong><%= typeof linksRemaining !== 'undefined' ? linksRemaining : 0 %></strong> link<%= (typeof linksRemaining !== 'undefined' && linksRemaining === 1) ? '' : 's' %> remaining</div>
+                            <% } %>
+                        </div>
+                    </div>
+                    <% if (!(user && user.isPremium)) { %>
+                        <div class="usage-progress-wrap">
+                            <% var usagePct = Math.min(100, Math.round(((typeof linkUsage !== 'undefined' ? linkUsage : 0) / (typeof freeLinkLimit !== 'undefined' ? freeLinkLimit : 5)) * 100)); %>
+                            <div class="usage-progress"><div class="usage-progress-fill" style="width:<%= usagePct %>%"></div></div>
+                            <a href="/plans" class="btn btn-sm btn-primary">Upgrade to Unlimited</a>
+                        </div>
+                    <% } else { %>
+                        <div class="premium-unlimited">♾️ Unlimited Short Links</div>
+                    <% } %>
                 </div>
 
                 <div class="stats-grid">
