@@ -59,6 +59,10 @@ const PREVIEW_DESCRIPTION = process.env.PREVIEW_DESCRIPTION || 'Fast, clean and 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(async (req,res,next)=>{
+  res.locals.announcement=await getActiveAnnouncement();
+  next();
+});
 
 // ===== MIDDLEWARE =====
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
@@ -251,10 +255,19 @@ async function initDatabase() {
       created_by TEXT NOT NULL DEFAULT 'automatic'
     );
 
+    CREATE TABLE IF NOT EXISTS announcements (
+      id BIGSERIAL PRIMARY KEY,
+      message TEXT NOT NULL,
+      is_active BOOLEAN NOT NULL DEFAULT TRUE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
     CREATE INDEX IF NOT EXISTS idx_notifications_user_created ON notifications(user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON notifications(user_id, is_read);
     CREATE INDEX IF NOT EXISTS idx_audit_created ON admin_audit_logs(created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_backups_created ON app_backups(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_announcements_active ON announcements(is_active, updated_at DESC);
 
     CREATE INDEX IF NOT EXISTS idx_links_user_id ON links(user_id);
     CREATE INDEX IF NOT EXISTS idx_links_domain_code ON links(selected_domain, short_code);
@@ -460,6 +473,14 @@ async function getEnabledDomains(){
   const list=q.rows.map(r=>normalizeHost(r.domain)).filter(d=>AVAILABLE_DOMAINS.map(normalizeHost).includes(d));
   return list.length ? list : [normalizeHost(BASE_HOST)];
 }
+async function getDomainChoices(){
+  const q=await pool.query('SELECT domain,enabled,maintenance,last_health FROM domain_settings ORDER BY domain=$1 DESC,domain ASC',[normalizeHost(BASE_HOST)]);
+  const configured=new Set(AVAILABLE_DOMAINS.map(normalizeHost));
+  return q.rows.filter(r=>configured.has(normalizeHost(r.domain))).map(r=>({
+    domain:normalizeHost(r.domain),enabled:!!r.enabled,maintenance:!!r.maintenance,lastHealth:r.last_health||'unknown',
+    selectable:!!r.enabled && !r.maintenance
+  }));
+}
 async function isDomainEnabled(domain){
   const d=normalizeHost(domain);
   const q=await pool.query('SELECT enabled,maintenance FROM domain_settings WHERE domain=$1',[d]);
@@ -492,6 +513,12 @@ async function createBackupSnapshot(createdBy='automatic'){
   await pool.query('INSERT INTO app_backups(backup_data,created_by) VALUES($1::jsonb,$2)',[JSON.stringify(payload),createdBy]);
   await pool.query(`DELETE FROM app_backups WHERE id NOT IN (SELECT id FROM app_backups ORDER BY created_at DESC LIMIT 7)`);
   return payload;
+}
+async function getActiveAnnouncement(){
+  try{
+    const q=await pool.query("SELECT id,message,updated_at FROM announcements WHERE is_active=TRUE ORDER BY updated_at DESC,id DESC LIMIT 1");
+    return q.rowCount?q.rows[0]:null;
+  }catch(e){ console.error('Announcement load error:',e.message); return null; }
 }
 async function maybeCreateAutomaticBackup(){
   try{
@@ -684,8 +711,9 @@ app.get('/shorten-page',authMiddleware,async(req,res)=>{
   try {
     const r=await pool.query('SELECT * FROM links WHERE user_id=$1 ORDER BY created_at DESC LIMIT 12',[req.user.id]);
     const links=r.rows.map(mapLink).map(l=>({...l,shortUrl:buildShortUrl(l)})); const active=await getActiveOnlineUsers();
-    const enabledDomains=await getEnabledDomains(), enabledCustom=enabledDomains.filter(d=>d!==normalizeHost(BASE_HOST));
-    res.render('index',{page:'shorten',user:req.user,links,onlineUsers:active.length,onlineUserList:active.map(u=>({name:u.displayName||u.username||'User'})),countries,error:req.query.error||null,success:req.query.success||null,info:null,shortUrl:req.query.shortUrl||null,customDomains:enabledCustom,availableDomains:enabledDomains,baseDomain:BASE_HOST,baseUrl:BASE_URL});
+    const domainChoices=await getDomainChoices();
+    const enabledDomains=domainChoices.filter(d=>d.selectable).map(d=>d.domain), enabledCustom=enabledDomains.filter(d=>d!==normalizeHost(BASE_HOST));
+    res.render('index',{page:'shorten',user:req.user,links,onlineUsers:active.length,onlineUserList:active.map(u=>({name:u.displayName||u.username||'User'})),countries,error:req.query.error||null,success:req.query.success||null,info:null,shortUrl:req.query.shortUrl||null,customDomains:enabledCustom,availableDomains:enabledDomains,domainChoices,baseDomain:BASE_HOST,baseUrl:BASE_URL});
   }catch(e){console.error('Shorten page error:',e);res.redirect('/dashboard?error='+encodeURIComponent('Could not open short link page'));}
 });
 
@@ -921,7 +949,7 @@ app.post('/admin/logout', (req,res)=>{ delete req.session.admin; req.session.sav
 
 app.get('/admin', adminMiddleware, async (req,res)=>{
   try {
-    const [usersR,linksR,payR,active,totalClicksR,botClicksR,auditR,domainsR,backupsR] = await Promise.all([
+    const [usersR,linksR,payR,active,totalClicksR,botClicksR,auditR,domainsR,backupsR,announcementsR] = await Promise.all([
       pool.query('SELECT * FROM users ORDER BY created_at DESC LIMIT 500'),
       pool.query(`SELECT l.*,u.display_name,u.username FROM links l JOIN users u ON u.id=l.user_id ORDER BY l.created_at DESC LIMIT 500`),
       pool.query(`SELECT p.*,u.display_name,u.username,u.email FROM payments p JOIN users u ON u.id=p.user_id ORDER BY p.created_at DESC LIMIT 300`),
@@ -930,12 +958,13 @@ app.get('/admin', adminMiddleware, async (req,res)=>{
       pool.query('SELECT COUNT(*)::bigint AS count FROM clicks WHERE is_bot=TRUE'),
       pool.query('SELECT * FROM admin_audit_logs ORDER BY created_at DESC LIMIT 100'),
       pool.query('SELECT * FROM domain_settings ORDER BY domain=$1 DESC,domain ASC',[normalizeHost(BASE_HOST)]),
-      pool.query('SELECT id,created_at,created_by FROM app_backups ORDER BY created_at DESC LIMIT 20')
+      pool.query('SELECT id,created_at,created_by FROM app_backups ORDER BY created_at DESC LIMIT 20'),
+      pool.query('SELECT * FROM announcements ORDER BY updated_at DESC,id DESC LIMIT 20')
     ]);
     const users=usersR.rows.map(mapUser);
     res.render('index',{page:'admin',user:req.session?.user?.id?await getUserById(req.session.user.id):null,onlineUsers:active.length,onlineUserList:active.map(u=>({name:u.displayName||u.username||'User'})),countries,
       error:req.query.error||null,success:req.query.success||null,info:null,shortUrl:null,customDomains:CUSTOM_DOMAINS,availableDomains:AVAILABLE_DOMAINS,baseDomain:BASE_HOST,baseUrl:BASE_URL,
-      adminUsers:users,adminLinks:linksR.rows,adminPayments:payR.rows,adminAudit:auditR.rows,adminDomains:domainsR.rows,adminBackups:backupsR.rows,
+      adminUsers:users,adminLinks:linksR.rows,adminPayments:payR.rows,adminAudit:auditR.rows,adminDomains:domainsR.rows,adminBackups:backupsR.rows,adminAnnouncements:announcementsR.rows,
       adminStats:{totalUsers:users.length,online:active.length,totalLinks:linksR.rows.length,totalClicks:Number(totalClicksR.rows[0].count),botClicks:Number(botClicksR.rows[0].count),pendingPayments:payR.rows.filter(p=>p.status==='pending').length},
       freeLinkLimit:FREE_LINK_LIMIT,plan1Price:PLAN_1_PRICE,plan3Price:PLAN_3_PRICE,bkashNumber:BKASH_NUMBER,nagadNumber:NAGAD_NUMBER
     });
@@ -989,6 +1018,35 @@ app.post('/admin/payments/:id/approve', adminMiddleware, async(req,res)=>{
 });
 app.post('/admin/payments/:id/reject', adminMiddleware, async(req,res)=>{
   try{const id=Number(req.params.id);const q=await pool.query("UPDATE payments SET status='rejected',admin_note=$1,reviewed_at=NOW() WHERE id=$2 RETURNING user_id",[String(req.body.note||'Rejected by admin'),id]);await auditAdmin(req,'payment_reject','payment',id,'');if(q.rowCount)await notifyUser(q.rows[0].user_id,'Payment rejected','Your payment request was rejected. Check the admin note or contact support.','warning');res.redirect('/admin?success='+encodeURIComponent('Payment rejected'));}catch(e){res.redirect('/admin?error='+encodeURIComponent('Could not reject payment'));}
+});
+
+
+// ===== ADMIN ANNOUNCEMENTS =====
+app.post('/admin/announcement', adminMiddleware, async(req,res)=>{
+  try{
+    const message=String(req.body.message||'').trim();
+    if(!message)return res.redirect('/admin?error='+encodeURIComponent('Announcement message is required.'));
+    if(message.length>500)return res.redirect('/admin?error='+encodeURIComponent('Announcement is too long (max 500 characters).'));
+    await pool.query('UPDATE announcements SET is_active=FALSE,updated_at=NOW() WHERE is_active=TRUE');
+    const q=await pool.query('INSERT INTO announcements(message,is_active) VALUES($1,TRUE) RETURNING id',[message]);
+    await auditAdmin(req,'announcement_publish','announcement',q.rows[0].id,message);
+    res.redirect('/admin?success='+encodeURIComponent('Announcement published'));
+  }catch(e){console.error('Announcement publish error:',e);res.redirect('/admin?error='+encodeURIComponent('Could not publish announcement'));}
+});
+app.post('/admin/announcement/:id/toggle', adminMiddleware, async(req,res)=>{
+  try{
+    const id=Number(req.params.id),q=await pool.query('SELECT is_active FROM announcements WHERE id=$1',[id]);
+    if(!q.rowCount)return res.redirect('/admin?error='+encodeURIComponent('Announcement not found'));
+    const next=!q.rows[0].is_active;
+    if(next)await pool.query('UPDATE announcements SET is_active=FALSE,updated_at=NOW() WHERE is_active=TRUE');
+    await pool.query('UPDATE announcements SET is_active=$1,updated_at=NOW() WHERE id=$2',[next,id]);
+    await auditAdmin(req,'announcement_toggle','announcement',id,`active=${next}`);
+    res.redirect('/admin?success='+encodeURIComponent(next?'Announcement activated':'Announcement turned off'));
+  }catch(e){res.redirect('/admin?error='+encodeURIComponent('Could not update announcement'));}
+});
+app.post('/admin/announcement/:id/delete', adminMiddleware, async(req,res)=>{
+  try{const id=Number(req.params.id);await pool.query('DELETE FROM announcements WHERE id=$1',[id]);await auditAdmin(req,'announcement_delete','announcement',id,'');res.redirect('/admin?success='+encodeURIComponent('Announcement deleted'));}
+  catch(e){res.redirect('/admin?error='+encodeURIComponent('Could not delete announcement'));}
 });
 
 app.post('/admin/users/:id/delete', adminMiddleware, async(req,res)=>{
