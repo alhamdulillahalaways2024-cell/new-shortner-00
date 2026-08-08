@@ -732,6 +732,19 @@ app.get('/dashboard',authMiddleware,async(req,res)=>{
   }catch(e){ console.error('Dashboard error:',e); res.redirect('/?error='+encodeURIComponent('Dashboard database error')); }
 });
 
+// ===== MY LINKS PAGE =====
+app.get('/my-links',authMiddleware,async(req,res)=>{
+  try{
+    const freshUser=await getUserById(req.user.id);
+    const r=await pool.query('SELECT * FROM links WHERE user_id=$1 ORDER BY created_at DESC',[req.user.id]);
+    const links=r.rows.map(mapLink).map(l=>({...l,shortUrl:buildShortUrl(l)}));
+    const active=await getActiveOnlineUsers();
+    const domainChoices=await getDomainChoices();
+    const enabledDomains=domainChoices.filter(d=>d.selectable).map(d=>d.domain);
+    res.render('index',{page:'my-links',user:freshUser,links,onlineUsers:active.length,onlineUserList:active.map(u=>({name:u.displayName||u.username||'User'})),countries,error:req.query.error||null,success:req.query.success||null,info:null,shortUrl:null,customDomains:enabledDomains.filter(d=>d!==normalizeHost(BASE_HOST)),availableDomains:enabledDomains,domainChoices,baseDomain:BASE_HOST,baseUrl:BASE_URL});
+  }catch(e){console.error('My links page error:',e);res.redirect('/dashboard?error='+encodeURIComponent('Could not load your short links.'));}
+});
+
 // ===== SHORT LINK PAGE =====
 app.get('/shorten-page',authMiddleware,async(req,res)=>{
   try {
