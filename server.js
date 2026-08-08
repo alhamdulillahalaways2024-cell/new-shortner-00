@@ -674,8 +674,11 @@ app.post('/logout',async(req,res)=>{
 // ===== DASHBOARD =====
 app.get('/dashboard',authMiddleware,async(req,res)=>{
   try {
+    const freshUser=await getUserById(req.user.id);
     const linkR=await pool.query('SELECT * FROM links WHERE user_id=$1 ORDER BY created_at DESC',[req.user.id]);
     const links=linkR.rows.map(mapLink).map(l=>({...l,shortUrl:buildShortUrl(l)}));
+    const linkUsage=links.length;
+    const linksRemaining=freshUser.isPremium?null:Math.max(0,FREE_LINK_LIMIT-linkUsage);
     const clickR=await pool.query('SELECT * FROM clicks WHERE user_id=$1 ORDER BY created_at DESC',[req.user.id]);
     const clicks=clickR.rows.map(mapClick);
     let totalClicks=0,todayClicks=0,yesterdayClicks=0,weekClicks=0,monthClicks=0,yearClicks=0,botClicks=0;
@@ -702,7 +705,7 @@ app.get('/dashboard',authMiddleware,async(req,res)=>{
     const browserStats=Object.entries(browserMap).map(([name,count])=>({name,count})).sort((a,b)=>b.count-a.count).slice(0,8);
     const uniqueClicks=uniqueIps.size;
     const activeUsers=await getActiveOnlineUsers();
-    res.render('index',{page:'dashboard',user:req.user,links,totalClicks,todayClicks,yesterdayClicks,weekClicks,monthClicks,yearClicks,uniqueClicks,topReferrers,browserStats,botClicks,realClicks,clickRate,onlineUsers:activeUsers.length,countryStats,deviceStats,weekData,countries,onlineUserList:activeUsers.map(u=>({name:u.displayName||u.username||'User'})),error:req.query.error||null,success:req.query.success||null,info:null,shortUrl:null,customDomains:CUSTOM_DOMAINS,availableDomains:AVAILABLE_DOMAINS,baseDomain:BASE_HOST,baseUrl:getBaseUrl(req)});
+    res.render('index',{page:'dashboard',user:freshUser,links,totalClicks,todayClicks,yesterdayClicks,weekClicks,monthClicks,yearClicks,uniqueClicks,topReferrers,browserStats,botClicks,realClicks,clickRate,onlineUsers:activeUsers.length,countryStats,deviceStats,weekData,countries,onlineUserList:activeUsers.map(u=>({name:u.displayName||u.username||'User'})),freeLinkLimit:FREE_LINK_LIMIT,linkUsage,linksRemaining,error:req.query.error||null,success:req.query.success||null,info:null,shortUrl:null,customDomains:CUSTOM_DOMAINS,availableDomains:AVAILABLE_DOMAINS,baseDomain:BASE_HOST,baseUrl:getBaseUrl(req)});
   }catch(e){ console.error('Dashboard error:',e); res.redirect('/?error='+encodeURIComponent('Dashboard database error')); }
 });
 
