@@ -1793,6 +1793,100 @@
 
         .usd-price{font-size:.72em;color:#8CFFD1;font-weight:800;margin-left:.28rem;white-space:nowrap}
 
+
+        /* ===== V7.8 GLOBAL LEFT SIDEBAR ===== */
+        .user-layout-container{
+            max-width:1500px!important;
+            display:grid!important;
+            grid-template-columns:245px minmax(0,1fr)!important;
+            gap:1rem!important;
+            align-items:start!important;
+            padding-top:1.2rem!important;
+        }
+        .global-user-sidebar{
+            position:sticky;
+            top:100px;
+            min-height:calc(100vh - 125px);
+            padding:1rem;
+            border-radius:24px;
+            background:linear-gradient(180deg,rgba(19,29,62,.94),rgba(11,18,40,.92));
+            border:1px solid rgba(255,255,255,.10);
+            box-shadow:0 24px 65px rgba(0,0,0,.30);
+            backdrop-filter:blur(24px);
+            display:flex;
+            flex-direction:column;
+            z-index:40;
+        }
+        .global-user-content{min-width:0;width:100%}
+        .global-online-pill{
+            display:flex;align-items:center;justify-content:center;gap:.45rem;
+            margin:.8rem 0 .15rem;padding:.48rem .6rem;border-radius:12px;
+            color:#8CFFD1;background:rgba(51,230,161,.07);
+            border:1px solid rgba(51,230,161,.16);font-size:.72rem;font-weight:800
+        }
+        .global-online-pill .dot{
+            width:7px;height:7px;border-radius:50%;background:#33E6A1;
+            box-shadow:0 0 12px rgba(51,230,161,.65)
+        }
+        .global-sidebar-menu{margin-top:.8rem!important}
+        .global-plan-card{margin-top:auto!important}
+        .global-sidebar-user{padding-top:.25rem!important}
+
+        /* Dashboard already had a local sidebar in V7.4/V7.5.
+           Keep its functionality in code, but hide it because the sidebar is now global. */
+        .user-layout-container .dashboard-app-shell{
+            display:block!important;
+        }
+        .user-layout-container .dashboard-app-shell > .premium-sidebar{
+            display:none!important;
+        }
+        .user-layout-container .premium-dashboard-main{
+            width:100%!important;
+        }
+
+        /* Logged-in brand bar contains logo/name only. */
+        .dashboard-brandbar{
+            max-width:1500px!important;
+        }
+
+        /* Home hero and all other pages now fit inside right content pane. */
+        .user-layout-container .brand-center{
+            padding-top:2.6rem!important;
+        }
+
+        @media(max-width:900px){
+            .user-layout-container{
+                grid-template-columns:205px minmax(0,1fr)!important;
+            }
+        }
+        @media(max-width:720px){
+            .user-layout-container{
+                display:block!important;
+                padding-left:10px!important;
+                padding-right:10px!important;
+            }
+            .global-user-sidebar{
+                position:relative;
+                top:0;
+                min-height:auto;
+                margin-bottom:1rem;
+            }
+            .global-sidebar-menu{
+                display:grid!important;
+                grid-template-columns:repeat(2,minmax(0,1fr))!important;
+            }
+            .global-plan-card{margin-top:.8rem!important}
+        }
+
+
+        .chart-fallback{
+            height:100%;min-height:260px;display:flex;flex-direction:column;
+            align-items:center;justify-content:center;gap:.45rem;
+            color:#DCE7FF;text-align:center
+        }
+        .chart-fallback i{color:#FFE08A;font-size:1.35rem}
+        .chart-fallback span{font-size:.72rem;color:#9EADCC}
+
 </style>
 </head>
 <body>
@@ -1814,7 +1908,7 @@
     </div>
 
     <% if (page !== 'admin' && page !== 'admin-login') { %>
-<% if (page === 'dashboard') { %>
+<% if (typeof user !== 'undefined' && user) { %>
     <nav class="dashboard-brandbar">
         <a href="/" class="dashboard-brand-link">
             <div class="logo-icon"><i class="fas fa-link"></i></div>
@@ -1909,7 +2003,59 @@
     </nav>
 <% } %>
 
-    <div class="container">
+    <div class="container <%= (typeof user !== 'undefined' && user && page !== 'admin' && page !== 'admin-login') ? 'user-layout-container' : '' %>">
+
+        <% if (typeof user !== 'undefined' && user && page !== 'admin' && page !== 'admin-login') { %>
+            <aside class="global-user-sidebar">
+                <div class="sidebar-user global-sidebar-user">
+                    <div class="sidebar-avatar">
+                        <% if (user.profilePhoto) { %>
+                            <img src="<%= user.profilePhoto %>" alt="Profile">
+                        <% } else { %>
+                            <%= (user.displayName || user.firstName || user.username || 'U').charAt(0).toUpperCase() %>
+                        <% } %>
+                    </div>
+                    <div class="sidebar-user-meta">
+                        <strong><%= user.displayName || user.firstName || user.username || 'User' %></strong>
+                        <span class="<%= user.isPremium ? 'premium-text' : 'free-text' %>"><%= user.isPremium ? '👑 Premium Account' : 'Free Account' %></span>
+                    </div>
+                </div>
+
+                <div class="global-online-pill">
+                    <span class="dot"></span>
+                    <span><%= typeof onlineUsers !== 'undefined' ? onlineUsers : 0 %> Online</span>
+                </div>
+
+                <nav class="sidebar-menu global-sidebar-menu">
+                    <a class="<%= page === 'home' ? 'active' : '' %>" href="/"><i class="fas fa-house"></i><span>Home</span></a>
+                    <a class="<%= page === 'dashboard' ? 'active' : '' %>" href="/dashboard"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
+                    <a class="<%= page === 'shorten' ? 'active' : '' %>" href="/shorten-page"><i class="fas fa-plus"></i><span>Create Link</span></a>
+                    <a class="<%= page === 'shorten' ? 'active-sub' : '' %>" href="/shorten-page"><i class="fas fa-link"></i><span>My Short Links</span></a>
+                    <a class="<%= page === 'api-access' ? 'active' : '' %>" href="/api-access"><i class="fas fa-code"></i><span>API Access</span><span class="side-tag">PRO</span></a>
+                    <a class="<%= page === 'notifications' ? 'active' : '' %>" href="/notifications"><i class="fas fa-bell"></i><span>Notifications</span></a>
+                    <a class="<%= page === 'plans' ? 'active' : '' %>" href="/plans"><i class="fas fa-crown"></i><span>Plans & Payment</span></a>
+                    <button type="button" onclick="openProfileModal()"><i class="fas fa-user"></i><span>Profile</span></button>
+                    <% if (user.isAdmin) { %>
+                        <a href="/admin"><i class="fas fa-shield-halved"></i><span>Admin Panel</span></a>
+                    <% } %>
+                    <form action="/logout" method="POST" class="sidebar-logout-form">
+                        <button type="submit" class="sidebar-logout"><i class="fas fa-right-from-bracket"></i><span>Logout</span></button>
+                    </form>
+                </nav>
+
+                <div class="sidebar-plan <%= user.isPremium ? 'premium' : 'free' %> global-plan-card">
+                    <div class="sidebar-plan-icon"><%= user.isPremium ? '👑' : '⚡' %></div>
+                    <strong><%= user.isPremium ? 'Premium Plan' : 'Free Plan' %></strong>
+                    <% if (user.isPremium) { %>
+                        <span>Unlimited short links</span>
+                    <% } else { %>
+                        <span>Upgrade for unlimited links + API</span>
+                        <a href="/plans">Upgrade Now</a>
+                    <% } %>
+                </div>
+            </aside>
+            <main class="global-user-content">
+        <% } %>
 
         <%
             var queryError = typeof error !== 'undefined' ? error : null;
@@ -2943,6 +3089,9 @@
             </div>
         <% } %>
 
+        <% if (typeof user !== 'undefined' && user && page !== 'admin' && page !== 'admin-login') { %>
+            </main>
+        <% } %>
     </div>
 
     <% if (page !== 'admin' && page !== 'admin-login') { %>
@@ -3391,8 +3540,8 @@
             }
             
             var ctx = document.getElementById('analyticsChart');
-            if (ctx) {
-                var chartDays = <%= typeof chartDays !== 'undefined' && chartDays ? JSON.stringify(chartDays) : '[]' %>;
+            if (ctx && typeof Chart !== 'undefined') {
+                var chartDays = <%- typeof chartDays !== 'undefined' && chartDays ? JSON.stringify(chartDays).replace(/</g, '\u003c') : '[]' %>;
                 var chartLabels = chartDays.length
                     ? chartDays.map(function(d){ return d.day.slice(0,3) + ' • ' + d.date.replace(/ \d{4}$/,''); })
                     : ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
@@ -3463,6 +3612,9 @@
                         }
                     }
                 });
+            } else if (ctx) {
+                var holder = ctx.parentElement;
+                if (holder) holder.innerHTML = '<div class="chart-fallback"><i class="fas fa-triangle-exclamation"></i><strong>Analytics graph could not load.</strong><span>Please refresh the page once.</span></div>';
             }
         });
 
